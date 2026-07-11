@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, mkdirSync } from 'fs';
+import { readFileSync, writeFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import * as esbuild from 'esbuild';
@@ -28,13 +28,8 @@ html = html.replace(
   `<script>\n${js}\n</script>\n`,
 );
 
-const releaseDir = join(root, 'release');
-mkdirSync(releaseDir, { recursive: true });
+const outFile = join(root, 'index.html');
 
-const outRelease = join(releaseDir, 'index.html');
-const outRoot = join(root, 'index.html');
+writeFileSync(outFile, html, 'utf8');
 
-writeFileSync(outRelease, html, 'utf8');
-writeFileSync(outRoot, html, 'utf8');
-
-console.log(`已生成单文件 HTML：\n  ${outRelease}\n  ${outRoot}`);
+console.log(`已生成单文件 HTML：\n  ${outFile}`);

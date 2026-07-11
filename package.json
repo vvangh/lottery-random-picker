@@ -5,7 +5,6 @@
   "packageManager": "pnpm@11.9.0",
   "scripts": {
     "build": "node scripts/build-single.mjs",
-    "build:single": "node scripts/build-single.mjs",
     "test": "vitest run",
     "test:watch": "vitest"
   },

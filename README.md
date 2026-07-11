@@ -4,10 +4,7 @@
 
 ## 发给用户（单文件）
 
-构建后取以下任一文件发送给用户，双击即可使用（支持 `file://`）：
-
-- `release/index.html`
-- 根目录 `index.html`（与 release 同步）
+构建后取根目录 `index.html` 发送给用户，双击即可使用（支持 `file://`）：
 
 ```bash
 pnpm install
