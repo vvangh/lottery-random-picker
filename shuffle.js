@@ -63,3 +63,16 @@ export function pickHeadAfterShuffle(pool, n, random = Math.random) {
   const shuffled = fisherYates([...pool], random);
   return shuffled.slice(0, n);
 }
+
+/**
+ * 从 pool 中移除 picked（按出现次数逐一扣除，支持重复号码）。
+ * 返回的剩余列表与 picked 无交集（多重集合意义下）。
+ */
+export function remainderAfterPick(pool, picked) {
+  const rest = [...pool];
+  for (const v of picked) {
+    const i = rest.indexOf(v);
+    if (i !== -1) rest.splice(i, 1);
+  }
+  return rest;
+}

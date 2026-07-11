@@ -5,6 +5,7 @@ import {
   countSortedConsecutive,
   pickMinimalSortedConsecutive,
   pickHeadAfterShuffle,
+  remainderAfterPick,
 } from './shuffle.js';
 
 describe('parseInput', () => {
@@ -82,5 +83,30 @@ describe('pickMinimalSortedConsecutive', () => {
     const sparse = ['000', '010', '020', '030', '040', '050'];
     const picked = pickMinimalSortedConsecutive(sparse, 4, () => 0.5);
     expect(countSortedConsecutive(picked)).toBe(0);
+  });
+});
+
+describe('remainderAfterPick', () => {
+  it('剩余 = 乱序池 - 已抽取，多重集合一致', () => {
+    const pool = ['000', '001', '001', '002', '010'];
+    const picked = ['001', '010'];
+    const remaining = remainderAfterPick(pool, picked);
+    expect(remaining).toEqual(['000', '001', '002']);
+    expect([...picked, ...remaining].sort()).toEqual([...pool].sort());
+  });
+
+  it('已抽取全部时剩余为空', () => {
+    const pool = ['121', '122'];
+    expect(remainderAfterPick(pool, pool)).toEqual([]);
+  });
+
+  it('与 pickMinimalSortedConsecutive 联用时不重叠', () => {
+    const pool = Array.from({ length: 50 }, (_, i) => String(i).padStart(3, '0'));
+    const picked = pickMinimalSortedConsecutive(pool, 12, () => 0.42);
+    const remaining = remainderAfterPick(pool, picked);
+    expect(picked).toHaveLength(12);
+    expect(remaining).toHaveLength(38);
+    expect([...picked, ...remaining].sort()).toEqual([...pool].sort());
+    picked.forEach(v => expect(remaining).not.toContain(v));
   });
 });
