@@ -140,18 +140,7 @@ function pickFromShuffled({ notify = false, highlight = false } = {}){
   if(notify){
     triggerHaptic();
     highlightResultCard();
-    if(remaining.length > 0){
-      showToast(`已抽 ${result.length} 个，剩余 ${remaining.length} 个`);
-    } else if(shuffled.length === result.length){
-      showToast(`已抽满 ${result.length} 个，无剩余号`);
-    }
-    requestAnimationFrame(() => {
-      if(remaining.length > 0){
-        remainingBlock.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      } else {
-        resultCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    });
+    requestAnimationFrame(() => resultCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' }));
   } else if(highlight){
     highlightResultCard();
   }
@@ -309,8 +298,7 @@ function closeSettingsModal(){
   if(shuffled.length){
     if(pickCountChanged){
       applyPickCount({ highlight: true });
-      const scrollTarget = remaining.length > 0 ? remainingBlock : resultCard;
-      requestAnimationFrame(() => scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+      requestAnimationFrame(() => resultCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' }));
     } else {
       savePickCount();
     }
@@ -528,7 +516,7 @@ function clearAll(){
 function getScrollAnchorOffset(){
   const navVisible = pageNav && !pageNav.hidden;
   const header = 60;
-  const nav = navVisible ? 48 : 0;
+  const nav = navVisible ? 50 : 0;
   return header + nav + 12;
 }
 
