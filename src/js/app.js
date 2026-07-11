@@ -68,10 +68,8 @@ function setRemainingBlockVisible(visible){
 }
 
 function syncLayoutState(){
-  const hasResults = result.length > 0 && !resultCard.hidden;
-  const hasRemaining = remaining.length > 0 && !remainingBlock.hidden;
-  document.body.classList.toggle('has-results', hasResults);
-  document.body.classList.toggle('has-remaining', hasRemaining);
+  document.body.classList.toggle('has-results', result.length > 0);
+  document.body.classList.toggle('has-remaining', remaining.length > 0);
 }
 
 // ===== Init =====
@@ -105,16 +103,17 @@ function pickFromShuffled({ notify = false, highlight = false } = {}){
   pickCount.value = n;
   result = pickMinimalSortedConsecutive(shuffled, n);
   remaining = remainderAfterPick(shuffled, result);
-  updateCountBadge(resultCountBadge, resultCount, n);
+  updateCountBadge(resultCountBadge, resultCount, result.length);
   updateCountBadge(remainingCountBadge, remainingCount, remaining.length);
+  setResultCardVisible(result.length > 0);
   showResult(result);
   showRemaining(remaining);
-  setResultCardVisible(true);
   updatePageNav();
   if(notify){
     triggerHaptic();
     highlightResultCard();
-    requestAnimationFrame(() => resultCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' }));
+    const scrollTarget = remaining.length > 0 ? remainingBlock : resultCard;
+    requestAnimationFrame(() => scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   } else if(highlight){
     highlightResultCard();
   }
@@ -186,7 +185,6 @@ function showRemaining(list){
   if(!list.length){
     setRemainingBlockVisible(false);
     remainingDisplay.innerHTML = '';
-    updatePageNav();
     return;
   }
   setRemainingBlockVisible(true);
@@ -195,7 +193,6 @@ function showRemaining(list){
   div.className = 'num-display num-display--remaining';
   renderNumDisplay(div, list);
   remainingDisplay.appendChild(div);
-  updatePageNav();
 }
 
 function highlightResultCard(){
@@ -292,7 +289,8 @@ function closeSettingsModal(){
   if(shuffled.length){
     if(pickCountChanged){
       applyPickCount({ highlight: true });
-      requestAnimationFrame(() => resultCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' }));
+      const scrollTarget = remaining.length > 0 ? remainingBlock : resultCard;
+      requestAnimationFrame(() => scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'start' }));
     } else {
       savePickCount();
     }
@@ -509,7 +507,9 @@ function clearAll(){
 // ===== Page nav & back to top =====
 function getScrollAnchorOffset(){
   const navVisible = pageNav && !pageNav.hidden;
-  return (navVisible ? 56 + 44 : 56) + 16;
+  const header = 56;
+  const nav = navVisible ? 44 : 0;
+  return header + nav + 12;
 }
 
 function scrollToAnchor(id){
@@ -521,17 +521,44 @@ function scrollToAnchor(id){
 
 function scrollToTop(){
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
+  const behavior = reduceMotion ? 'auto' : 'smooth';
+  window.scrollTo({ top: 0, behavior });
+  document.querySelectorAll('.num-display, .input-area textarea').forEach(el => {
+    el.scrollTo({ top: 0, behavior });
+  });
+}
+
+function getPageScrollTop(){
+  return window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
+}
+
+function hasNestedScroll(){
+  return [...document.querySelectorAll('.num-display, .input-area textarea')]
+    .some(el => el.scrollTop > 48);
+}
+
+function shouldShowBackTop(){
+  return getPageScrollTop() > 80 || hasNestedScroll();
+}
+
+function scheduleScrollUpdate(){
+  if(scheduleScrollUpdate._tick) return;
+  scheduleScrollUpdate._tick = true;
+  requestAnimationFrame(() => {
+    updateActiveNav();
+    updateBackTop();
+    scheduleScrollUpdate._tick = false;
+  });
 }
 
 function updatePageNav(){
   if(!pageNav) return;
   syncLayoutState();
-  const hasResultArea = result.length > 0 && !resultCard.hidden;
+  const hasResultArea = result.length > 0;
   const hasPicked = hasResultArea;
-  const hasRemaining = remaining.length > 0 && !remainingBlock.hidden;
+  const hasRemainingNav = remaining.length > 0;
   if(navPicked) navPicked.hidden = !hasPicked;
-  if(navRemaining) navRemaining.hidden = !hasRemaining;
+  if(navRemaining) navRemaining.hidden = !hasRemainingNav;
   pageNav.hidden = !hasResultArea;
   document.body.classList.toggle('has-page-nav', hasResultArea);
   updateActiveNav();
@@ -554,7 +581,7 @@ function updateActiveNav(){
 
 function updateBackTop(){
   if(!btnBackTop) return;
-  btnBackTop.classList.toggle('is-visible', window.scrollY > 120);
+  btnBackTop.classList.toggle('is-visible', shouldShowBackTop());
 }
 
 function initPageNav(){
@@ -564,16 +591,9 @@ function initPageNav(){
     if(!btn || btn.hidden) return;
     scrollToAnchor(btn.dataset.target);
   });
-  let scrollTick = false;
-  window.addEventListener('scroll', () => {
-    if(scrollTick) return;
-    scrollTick = true;
-    requestAnimationFrame(() => {
-      updateActiveNav();
-      updateBackTop();
-      scrollTick = false;
-    });
-  }, { passive: true });
+  window.addEventListener('scroll', scheduleScrollUpdate, { passive: true });
+  document.addEventListener('scroll', scheduleScrollUpdate, { passive: true, capture: true });
+  window.addEventListener('resize', scheduleScrollUpdate, { passive: true });
   updatePageNav();
 }
 

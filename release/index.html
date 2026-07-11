@@ -34,6 +34,7 @@
   --header-bg: rgba(15,15,26,.92);
   --page-nav-height: 44px;
   --content-top-gap: 16px;
+  --nav-stack-height: calc(var(--header-height) + var(--page-nav-height));
   --shell-max: 480px;
   --page-padding-x: 16px;
   --field-min-h: 96px;
@@ -53,6 +54,9 @@ body::before{
 }
 .app{position:relative;z-index:1;max-width:var(--shell-max);margin:0 auto;
   padding:calc(var(--header-height) + env(safe-area-inset-top) + var(--content-top-gap)) var(--page-padding-x) calc(var(--dock-height) + env(safe-area-inset-bottom) + 8px)}
+body.has-page-nav .app{
+  padding-top:calc(var(--nav-stack-height) + env(safe-area-inset-top) + var(--content-top-gap));
+}
 
 /* ===== Fixed Header ===== */
 .app-header{
@@ -81,11 +85,12 @@ body::before{
 
 /* ===== Page nav & back to top ===== */
 .page-nav{
-  position:sticky;
+  position:fixed;
   top:calc(var(--header-height) + env(safe-area-inset-top));
-  z-index:90;
+  left:0;right:0;
+  z-index:95;
+  max-width:var(--shell-max);margin:0 auto;
   display:flex;gap:8px;
-  margin:0 calc(var(--page-padding-x) * -1) 12px;
   padding:8px var(--page-padding-x) 10px;
   overflow-x:auto;-webkit-overflow-scrolling:touch;
   scrollbar-width:none;
@@ -113,10 +118,10 @@ body::before{
   scroll-margin-top:calc(var(--header-height) + env(safe-area-inset-top) + 12px);
 }
 body.has-page-nav .scroll-target{
-  scroll-margin-top:calc(var(--header-height) + env(safe-area-inset-top) + var(--page-nav-height) + 16px);
+  scroll-margin-top:calc(var(--nav-stack-height) + env(safe-area-inset-top) + 12px);
 }
 .back-top{
-  position:fixed;right:16px;z-index:99;
+  position:fixed;right:16px;z-index:110;
   bottom:calc(var(--dock-height) + env(safe-area-inset-bottom) + 14px);
   width:44px;height:44px;border-radius:50%;
   border:1px solid var(--border);background:var(--dock-bg);
@@ -124,10 +129,13 @@ body.has-page-nav .scroll-target{
   color:var(--text);font-size:20px;font-weight:700;line-height:1;
   box-shadow:0 4px 20px rgba(0,0,0,.35);cursor:pointer;
   opacity:0;pointer-events:none;transform:translateY(10px);
-  transition:opacity .25s var(--ease),transform .25s var(--ease);
+  transition:opacity .25s var(--ease),transform .25s var(--ease),border-color .25s var(--ease),color .25s var(--ease);
   -webkit-user-select:none;user-select:none;
 }
-.back-top.is-visible{opacity:1;pointer-events:auto;transform:translateY(0)}
+.back-top.is-visible{
+  opacity:1;pointer-events:auto;transform:translateY(0);
+  border-color:rgba(0,206,201,.45);color:var(--accent);
+}
 .back-top:active{transform:scale(.92)}
 .back-top.is-visible:active{transform:scale(.92)}
 @media (prefers-reduced-motion:reduce){
@@ -195,20 +203,24 @@ body.has-page-nav .scroll-target{
   border-color:rgba(255,183,77,.40);
 }
 .input-area textarea,
-.result-area .num-display{
+.result-panel .num-display{
   min-height:var(--field-min-h);
   max-height:var(--field-max-h);
 }
-#resultCard[hidden]{display:none !important}
+#resultCard[hidden],
 #remainingBlock[hidden]{display:none !important}
 .preview-body .num-display{
   min-height:auto;
   max-height:none;
 }
-.result-block + .result-block{
-  margin-top:16px;padding-top:16px;
-  border-top:1px solid var(--border);
+
+/* ===== Result panels ===== */
+.result-panel{
+  display:flex;
+  flex-direction:column;
+  min-height:0;
 }
+.result-panel .num-display{flex:1}
 
 /* ===== Control row ===== */
 .control-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
@@ -299,10 +311,6 @@ body.has-page-nav .scroll-target{
   -webkit-user-select:none;user-select:none;
 }
 .btn-theme:active{transform:scale(.97);background:var(--surface-active)}
-.modal-sheet-sm{
-  max-height:none;margin:20px 16px;
-  border-radius:var(--radius);overflow:hidden;
-}
 .modal-overlay.modal-center{align-items:center}
 .modal-overlay.modal-center .modal-sheet{
   transform:scale(.92);opacity:0;
@@ -313,11 +321,9 @@ body.has-page-nav .scroll-target{
 
 /* ===== Result ===== */
 .result-area{
-  margin-top:8px;
   position:relative;
   overflow:hidden;
 }
-.result-area > .result-block{position:relative;z-index:1}
 .result-area--breathing{
   animation:resultBreath 0.85s var(--ease) 2;
 }
@@ -425,7 +431,27 @@ body.has-page-nav .scroll-target{
 .modal-overlay.show .modal-sheet{transform:translateY(0)}
 .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-shrink:0;gap:8px}
 .modal-header h3{font-size:16px;font-weight:600;color:var(--text)}
-.modal-body{overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.modal-body{
+  flex:1 1 auto;min-height:0;
+  overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;
+}
+.modal-sheet.modal-sheet-sm{
+  max-height:none;
+  width:calc(100% - 32px);
+  margin:20px 16px;
+  padding:20px;
+  border-radius:var(--radius);
+  overflow:hidden;
+}
+.modal-sheet.modal-sheet-sm .modal-body{
+  flex:0 0 auto;
+  overflow:visible;
+  min-height:0;
+}
+.modal-overlay.modal-center .modal-sheet.modal-sheet-sm{
+  width:min(440px, calc(100% - 32px));
+  margin:20px auto;
+}
 .copy-fallback-tip{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:10px}
 .copy-fallback-text{
   width:100%;height:120px;padding:12px;border-radius:var(--radius-sm);
@@ -469,7 +495,7 @@ body.has-page-nav .scroll-target{
   .card{padding:16px}
 }
 
-/* 平板 / 小桌面 */
+/* 平板 / 小桌面：左号码池 + 右结果（上下堆叠） */
 @media(min-width:768px){
   :root{
     --shell-max:min(920px, calc(100vw - 40px));
@@ -483,14 +509,17 @@ body.has-page-nav .scroll-target{
   .card-header-title h3{font-size:16px}
   .card-count{font-size:13px}
   .input-area textarea,
-  .result-area .num-display{font-size:14px}
+  .result-panel .num-display{font-size:14px}
   .input-area textarea{resize:vertical}
   .icon-btn{width:44px;height:44px}
   .card-header-actions .icon-btn,.modal-actions .icon-btn{width:36px;height:36px}
-  .page-nav-btn{padding:8px 16px;font-size:13px}
-  .page-nav{
-    margin-left:0;margin-right:0;
-    border-radius:var(--radius-sm);
+  body.has-results .page-nav{display:none !important}
+  body.has-results.has-page-nav .app{
+    padding-top:calc(var(--header-height) + env(safe-area-inset-top) + var(--content-top-gap));
+  }
+  body.has-results .scroll-target,
+  body.has-page-nav.has-results .scroll-target{
+    scroll-margin-top:calc(var(--header-height) + env(safe-area-inset-top) + 16px);
   }
   .app{
     display:grid;
@@ -499,37 +528,94 @@ body.has-page-nav .scroll-target{
     row-gap:16px;
     align-items:start;
   }
-  .page-nav{grid-column:1 / -1}
-  .input-area{grid-column:1;grid-row:2;margin-bottom:0}
-  #resultCard{grid-column:2;grid-row:2;margin-bottom:0}
+  .page-nav{grid-column:unset}
+  .input-area{grid-column:1;grid-row:1;margin-bottom:0}
+  body.has-results #resultCard:not([hidden]){grid-column:2;grid-row:1;margin-bottom:0;margin-top:0}
+  body.has-results #remainingBlock:not([hidden]){grid-column:2;grid-row:2;margin-bottom:0}
   #historyCard{grid-column:1 / -1;grid-row:3;margin-bottom:0}
   body:not(.has-results) .input-area{grid-column:1 / -1}
-  body.has-results.has-remaining #resultCard{
-    display:grid !important;
-    grid-template-columns:minmax(0,1fr) minmax(0,1fr);
-    gap:0 20px;
-    align-items:start;
-  }
-  body.has-results.has-remaining #resultCard .result-block + .result-block{
-    margin-top:0;padding-top:0;border-top:none;
-    border-left:1px solid var(--border);
-    padding-left:20px;
-  }
-  .modal-sheet-sm{max-width:440px;margin:20px auto}
+  body.has-results:not(.has-remaining) #historyCard{grid-row:2}
   .back-top{
     right:max(20px, calc((100vw - var(--shell-max)) / 2 + 12px));
   }
 }
 
-/* 大桌面 */
+/* 大桌面：三栏独立卡片 + 等高工作区 */
 @media(min-width:1024px){
   :root{
-    --shell-max:min(1080px, calc(100vw - 48px));
-    --field-min-h:128px;
-    --field-max-h:min(380px, 52dvh);
+    --shell-max:min(1280px, calc(100vw - 64px));
+    --workspace-h:min(560px, calc(100dvh - var(--header-height) - var(--dock-height) - 72px));
+    --field-min-h:160px;
+    --field-max-h:none;
   }
-  .app{column-gap:24px;row-gap:20px}
-  .btn-accent{max-width:420px;margin:0 auto}
+  .app{
+    column-gap:20px;
+    row-gap:20px;
+    padding-bottom:calc(var(--dock-height) + env(safe-area-inset-bottom) + 16px);
+  }
+  body.has-results.has-remaining .app{
+    grid-template-columns:repeat(3, minmax(0, 1fr));
+    align-items:stretch;
+  }
+  body.has-results:not(.has-remaining) .app{
+    grid-template-columns:minmax(0, 1.15fr) minmax(0, 0.85fr);
+    align-items:stretch;
+  }
+  body.has-results.has-remaining .input-area{grid-column:1;grid-row:1}
+  body.has-results.has-remaining #resultCard:not([hidden]){grid-column:2;grid-row:1;margin-bottom:0}
+  body.has-results.has-remaining #remainingBlock:not([hidden]){grid-column:3;grid-row:1;margin-bottom:0}
+  body.has-results:not(.has-remaining) .input-area{grid-column:1;grid-row:1}
+  body.has-results:not(.has-remaining) #resultCard:not([hidden]){grid-column:2;grid-row:1;margin-bottom:0}
+  body.has-results.has-remaining #historyCard{grid-row:2}
+  body.has-results:not(.has-remaining) #historyCard{grid-row:2}
+  body.has-results .input-area,
+  body.has-results .result-panel:not([hidden]){
+    display:flex;
+    flex-direction:column;
+    min-height:var(--workspace-h);
+  }
+  body.has-results .input-area textarea{
+    flex:1;
+    max-height:none;
+    resize:vertical;
+  }
+  body.has-results .result-panel:not([hidden]) #resultDisplay,
+  body.has-results .result-panel:not([hidden]) #remainingDisplay{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    min-height:0;
+  }
+  body.has-results .result-panel:not([hidden]) .num-display{
+    flex:1;
+    max-height:none;
+    overflow-y:auto;
+  }
+  .control-dock{
+    left:50%;right:auto;
+    transform:translateX(-50%);
+    width:auto;max-width:none;
+    background:transparent;
+    border-top:none;
+    box-shadow:none;
+    backdrop-filter:none;-webkit-backdrop-filter:none;
+    padding:12px 24px calc(12px + env(safe-area-inset-bottom));
+  }
+  .control-dock .btn-group{
+    padding:6px;
+    border-radius:999px;
+    background:var(--dock-bg);
+    border:1px solid var(--border);
+    box-shadow:0 8px 32px rgba(0,0,0,.45);
+    backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  }
+  .control-dock .btn-accent{
+    max-width:none;
+    min-width:220px;
+    margin:0;
+    border-radius:999px;
+    padding:14px 36px;
+  }
 }
 
 @media(min-width:768px) and (pointer:fine){
@@ -563,13 +649,13 @@ body.has-page-nav .scroll-target{
   </div>
 </div>
 
-<div class="app" id="app">
-  <nav class="page-nav" id="pageNav" aria-label="页面导航" hidden>
-    <button type="button" class="page-nav-btn" data-target="anchor-pool">号码池</button>
-    <button type="button" class="page-nav-btn" data-target="anchor-picked" id="navPicked" hidden>已抽号</button>
-    <button type="button" class="page-nav-btn" data-target="remainingBlock" id="navRemaining" hidden>剩余号</button>
-  </nav>
+<nav class="page-nav" id="pageNav" aria-label="页面导航" hidden>
+  <button type="button" class="page-nav-btn" data-target="anchor-pool">号码池</button>
+  <button type="button" class="page-nav-btn" data-target="resultCard" id="navPicked" hidden>已抽号</button>
+  <button type="button" class="page-nav-btn" data-target="remainingBlock" id="navRemaining" hidden>剩余号</button>
+</nav>
 
+<div class="app" id="app">
   <!-- Input Card -->
   <div class="card input-area scroll-target" id="anchor-pool">
     <div class="card-header">
@@ -588,34 +674,34 @@ body.has-page-nav .scroll-target{
     </div>
   </div>
 
-  <!-- Result Card -->
-  <div class="card result-area scroll-target" id="resultCard" hidden>
-    <div class="result-block" id="anchor-picked">
-      <div class="card-header">
-        <div class="card-header-title">
-          <h3>🎯 已抽号</h3>
-          <span class="card-count" id="resultCountBadge" hidden>（共 <span class="card-count-num" id="resultCount">0</span> 个）</span>
-        </div>
-        <div class="card-header-actions">
-          <button class="icon-btn" onclick="previewResult()" title="预览" aria-label="预览已抽号">👁</button>
-          <button class="icon-btn" onclick="copyResult()" title="复制" aria-label="复制已抽号">📋</button>
-        </div>
+  <!-- Picked Card -->
+  <div class="card result-area result-panel scroll-target" id="resultCard" hidden>
+    <div class="card-header">
+      <div class="card-header-title">
+        <h3>🎯 已抽号</h3>
+        <span class="card-count" id="resultCountBadge" hidden>（共 <span class="card-count-num" id="resultCount">0</span> 个）</span>
       </div>
-      <div id="resultDisplay"></div>
-    </div>
-    <div class="result-block scroll-target" id="remainingBlock" hidden>
-      <div class="card-header">
-        <div class="card-header-title">
-          <h3>📦 剩余号</h3>
-          <span class="card-count" id="remainingCountBadge" hidden>（共 <span class="card-count-num" id="remainingCount">0</span> 个）</span>
-        </div>
-        <div class="card-header-actions">
-          <button class="icon-btn" onclick="previewRemaining()" title="预览" aria-label="预览剩余号">👁</button>
-          <button class="icon-btn" onclick="copyRemaining()" title="复制" aria-label="复制剩余号">📋</button>
-        </div>
+      <div class="card-header-actions">
+        <button class="icon-btn" onclick="previewResult()" title="预览" aria-label="预览已抽号">👁</button>
+        <button class="icon-btn" onclick="copyResult()" title="复制" aria-label="复制已抽号">📋</button>
       </div>
-      <div id="remainingDisplay"></div>
     </div>
+    <div id="resultDisplay"></div>
+  </div>
+
+  <!-- Remaining Card -->
+  <div class="card result-panel scroll-target" id="remainingBlock" hidden>
+    <div class="card-header">
+      <div class="card-header-title">
+        <h3>📦 剩余号</h3>
+        <span class="card-count" id="remainingCountBadge" hidden>（共 <span class="card-count-num" id="remainingCount">0</span> 个）</span>
+      </div>
+      <div class="card-header-actions">
+        <button class="icon-btn" onclick="previewRemaining()" title="预览" aria-label="预览剩余号">👁</button>
+        <button class="icon-btn" onclick="copyRemaining()" title="复制" aria-label="复制剩余号">📋</button>
+      </div>
+    </div>
+    <div id="remainingDisplay"></div>
   </div>
 
   <!-- History Card -->
@@ -821,10 +907,8 @@ body.has-page-nav .scroll-target{
     else remainingBlock.setAttribute("hidden", "");
   }
   function syncLayoutState() {
-    const hasResults = result.length > 0 && !resultCard.hidden;
-    const hasRemaining = remaining.length > 0 && !remainingBlock.hidden;
-    document.body.classList.toggle("has-results", hasResults);
-    document.body.classList.toggle("has-remaining", hasRemaining);
+    document.body.classList.toggle("has-results", result.length > 0);
+    document.body.classList.toggle("has-remaining", remaining.length > 0);
   }
   applyTheme();
   renderHistory();
@@ -852,16 +936,17 @@ body.has-page-nav .scroll-target{
     pickCount.value = n;
     result = pickMinimalSortedConsecutive(shuffled, n);
     remaining = remainderAfterPick(shuffled, result);
-    updateCountBadge(resultCountBadge, resultCount, n);
+    updateCountBadge(resultCountBadge, resultCount, result.length);
     updateCountBadge(remainingCountBadge, remainingCount, remaining.length);
+    setResultCardVisible(result.length > 0);
     showResult(result);
     showRemaining(remaining);
-    setResultCardVisible(true);
     updatePageNav();
     if (notify) {
       triggerHaptic();
       highlightResultCard();
-      requestAnimationFrame(() => resultCard.scrollIntoView({ behavior: "smooth", block: "nearest" }));
+      const scrollTarget = remaining.length > 0 ? remainingBlock : resultCard;
+      requestAnimationFrame(() => scrollTarget.scrollIntoView({ behavior: "smooth", block: "start" }));
     } else if (highlight) {
       highlightResultCard();
     }
@@ -926,7 +1011,6 @@ body.has-page-nav .scroll-target{
     if (!list.length) {
       setRemainingBlockVisible(false);
       remainingDisplay.innerHTML = "";
-      updatePageNav();
       return;
     }
     setRemainingBlockVisible(true);
@@ -935,7 +1019,6 @@ body.has-page-nav .scroll-target{
     div.className = "num-display num-display--remaining";
     renderNumDisplay(div, list);
     remainingDisplay.appendChild(div);
-    updatePageNav();
   }
   function highlightResultCard() {
     resultCard.classList.remove("result-area--breathing");
@@ -1017,7 +1100,8 @@ body.has-page-nav .scroll-target{
     if (shuffled.length) {
       if (pickCountChanged) {
         applyPickCount({ highlight: true });
-        requestAnimationFrame(() => resultCard.scrollIntoView({ behavior: "smooth", block: "nearest" }));
+        const scrollTarget = remaining.length > 0 ? remainingBlock : resultCard;
+        requestAnimationFrame(() => scrollTarget.scrollIntoView({ behavior: "smooth", block: "start" }));
       } else {
         savePickCount();
       }
@@ -1230,7 +1314,9 @@ body.has-page-nav .scroll-target{
   }
   function getScrollAnchorOffset() {
     const navVisible = pageNav && !pageNav.hidden;
-    return (navVisible ? 56 + 44 : 56) + 16;
+    const header = 56;
+    const nav = navVisible ? 44 : 0;
+    return header + nav + 12;
   }
   function scrollToAnchor(id) {
     const el = document.getElementById(id);
@@ -1240,16 +1326,38 @@ body.has-page-nav .scroll-target{
   }
   function scrollToTop() {
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+    const behavior = reduceMotion ? "auto" : "smooth";
+    window.scrollTo({ top: 0, behavior });
+    document.querySelectorAll(".num-display, .input-area textarea").forEach((el) => {
+      el.scrollTo({ top: 0, behavior });
+    });
+  }
+  function getPageScrollTop() {
+    return window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
+  }
+  function hasNestedScroll() {
+    return [...document.querySelectorAll(".num-display, .input-area textarea")].some((el) => el.scrollTop > 48);
+  }
+  function shouldShowBackTop() {
+    return getPageScrollTop() > 80 || hasNestedScroll();
+  }
+  function scheduleScrollUpdate() {
+    if (scheduleScrollUpdate._tick) return;
+    scheduleScrollUpdate._tick = true;
+    requestAnimationFrame(() => {
+      updateActiveNav();
+      updateBackTop();
+      scheduleScrollUpdate._tick = false;
+    });
   }
   function updatePageNav() {
     if (!pageNav) return;
     syncLayoutState();
-    const hasResultArea = result.length > 0 && !resultCard.hidden;
+    const hasResultArea = result.length > 0;
     const hasPicked = hasResultArea;
-    const hasRemaining = remaining.length > 0 && !remainingBlock.hidden;
+    const hasRemainingNav = remaining.length > 0;
     if (navPicked) navPicked.hidden = !hasPicked;
-    if (navRemaining) navRemaining.hidden = !hasRemaining;
+    if (navRemaining) navRemaining.hidden = !hasRemainingNav;
     pageNav.hidden = !hasResultArea;
     document.body.classList.toggle("has-page-nav", hasResultArea);
     updateActiveNav();
@@ -1268,7 +1376,7 @@ body.has-page-nav .scroll-target{
   }
   function updateBackTop() {
     if (!btnBackTop) return;
-    btnBackTop.classList.toggle("is-visible", window.scrollY > 120);
+    btnBackTop.classList.toggle("is-visible", shouldShowBackTop());
   }
   function initPageNav() {
     if (!pageNav) return;
@@ -1277,16 +1385,9 @@ body.has-page-nav .scroll-target{
       if (!btn || btn.hidden) return;
       scrollToAnchor(btn.dataset.target);
     });
-    let scrollTick = false;
-    window.addEventListener("scroll", () => {
-      if (scrollTick) return;
-      scrollTick = true;
-      requestAnimationFrame(() => {
-        updateActiveNav();
-        updateBackTop();
-        scrollTick = false;
-      });
-    }, { passive: true });
+    window.addEventListener("scroll", scheduleScrollUpdate, { passive: true });
+    document.addEventListener("scroll", scheduleScrollUpdate, { passive: true, capture: true });
+    window.addEventListener("resize", scheduleScrollUpdate, { passive: true });
     updatePageNav();
   }
   function toggleTheme() {

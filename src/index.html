@@ -20,13 +20,13 @@
   </div>
 </div>
 
-<div class="app" id="app">
-  <nav class="page-nav" id="pageNav" aria-label="页面导航" hidden>
-    <button type="button" class="page-nav-btn" data-target="anchor-pool">号码池</button>
-    <button type="button" class="page-nav-btn" data-target="anchor-picked" id="navPicked" hidden>已抽号</button>
-    <button type="button" class="page-nav-btn" data-target="remainingBlock" id="navRemaining" hidden>剩余号</button>
-  </nav>
+<nav class="page-nav" id="pageNav" aria-label="页面导航" hidden>
+  <button type="button" class="page-nav-btn" data-target="anchor-pool">号码池</button>
+  <button type="button" class="page-nav-btn" data-target="resultCard" id="navPicked" hidden>已抽号</button>
+  <button type="button" class="page-nav-btn" data-target="remainingBlock" id="navRemaining" hidden>剩余号</button>
+</nav>
 
+<div class="app" id="app">
   <!-- Input Card -->
   <div class="card input-area scroll-target" id="anchor-pool">
     <div class="card-header">
@@ -45,34 +45,34 @@
     </div>
   </div>
 
-  <!-- Result Card -->
-  <div class="card result-area scroll-target" id="resultCard" hidden>
-    <div class="result-block" id="anchor-picked">
-      <div class="card-header">
-        <div class="card-header-title">
-          <h3>🎯 已抽号</h3>
-          <span class="card-count" id="resultCountBadge" hidden>（共 <span class="card-count-num" id="resultCount">0</span> 个）</span>
-        </div>
-        <div class="card-header-actions">
-          <button class="icon-btn" onclick="previewResult()" title="预览" aria-label="预览已抽号">👁</button>
-          <button class="icon-btn" onclick="copyResult()" title="复制" aria-label="复制已抽号">📋</button>
-        </div>
+  <!-- Picked Card -->
+  <div class="card result-area result-panel scroll-target" id="resultCard" hidden>
+    <div class="card-header">
+      <div class="card-header-title">
+        <h3>🎯 已抽号</h3>
+        <span class="card-count" id="resultCountBadge" hidden>（共 <span class="card-count-num" id="resultCount">0</span> 个）</span>
       </div>
-      <div id="resultDisplay"></div>
-    </div>
-    <div class="result-block scroll-target" id="remainingBlock" hidden>
-      <div class="card-header">
-        <div class="card-header-title">
-          <h3>📦 剩余号</h3>
-          <span class="card-count" id="remainingCountBadge" hidden>（共 <span class="card-count-num" id="remainingCount">0</span> 个）</span>
-        </div>
-        <div class="card-header-actions">
-          <button class="icon-btn" onclick="previewRemaining()" title="预览" aria-label="预览剩余号">👁</button>
-          <button class="icon-btn" onclick="copyRemaining()" title="复制" aria-label="复制剩余号">📋</button>
-        </div>
+      <div class="card-header-actions">
+        <button class="icon-btn" onclick="previewResult()" title="预览" aria-label="预览已抽号">👁</button>
+        <button class="icon-btn" onclick="copyResult()" title="复制" aria-label="复制已抽号">📋</button>
       </div>
-      <div id="remainingDisplay"></div>
     </div>
+    <div id="resultDisplay"></div>
+  </div>
+
+  <!-- Remaining Card -->
+  <div class="card result-panel scroll-target" id="remainingBlock" hidden>
+    <div class="card-header">
+      <div class="card-header-title">
+        <h3>📦 剩余号</h3>
+        <span class="card-count" id="remainingCountBadge" hidden>（共 <span class="card-count-num" id="remainingCount">0</span> 个）</span>
+      </div>
+      <div class="card-header-actions">
+        <button class="icon-btn" onclick="previewRemaining()" title="预览" aria-label="预览剩余号">👁</button>
+        <button class="icon-btn" onclick="copyRemaining()" title="复制" aria-label="复制剩余号">📋</button>
+      </div>
+    </div>
+    <div id="remainingDisplay"></div>
   </div>
 
   <!-- History Card -->
