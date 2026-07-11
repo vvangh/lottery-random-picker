@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#1a1a2e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>随机抽号器</title>
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<!-- Fixed Header -->
+<div class="app-header">
+  <h1>✦ 随机抽号</h1>
+  <div class="header-actions">
+    <button class="icon-btn" onclick="openSettingsModal()" title="设置" aria-label="设置">⚙️</button>
+    <button class="icon-btn" onclick="clearAll()" title="清空所有" id="btnClear" disabled aria-label="清空">🗑️</button>
+  </div>
+</div>
+
+<div class="app" id="app">
+  <nav class="page-nav" id="pageNav" aria-label="页面导航" hidden>
+    <button type="button" class="page-nav-btn" data-target="anchor-pool">号码池</button>
+    <button type="button" class="page-nav-btn" data-target="anchor-picked" id="navPicked" hidden>已抽号</button>
+    <button type="button" class="page-nav-btn" data-target="remainingBlock" id="navRemaining" hidden>剩余号</button>
+  </nav>
+
+  <!-- Input Card -->
+  <div class="card input-area scroll-target" id="anchor-pool">
+    <div class="card-header">
+      <div class="card-header-title">
+        <h3>📋 号码池</h3>
+        <span class="card-count" id="itemCountBadge" hidden>（共 <span class="card-count-num" id="itemCount">0</span> 个）</span>
+      </div>
+      <div class="card-header-actions">
+        <button type="button" class="icon-btn" id="btnPreviewItems" onclick="previewItems()" title="预览" aria-label="预览号码池" style="display:none">👁</button>
+        <button type="button" class="icon-btn" id="btnCopyItems" onclick="copyItems()" title="复制" aria-label="复制号码池" style="display:none">📋</button>
+      </div>
+    </div>
+    <textarea id="inputText" enterkeyhint="done" placeholder="粘贴号码，空格分隔&#10;000 002 003 004 010 012 013 ..."></textarea>
+    <div class="card-footer">
+      <button type="button" class="btn-view-pool" id="btnViewPool" onclick="previewPool()">🃏 乱序池</button>
+    </div>
+  </div>
+
+  <!-- Result Card -->
+  <div class="card result-area scroll-target" id="resultCard" style="display:none">
+    <div class="result-block" id="anchor-picked">
+      <div class="card-header">
+        <div class="card-header-title">
+          <h3>🎯 已抽号</h3>
+          <span class="card-count" id="resultCountBadge" hidden>（共 <span class="card-count-num" id="resultCount">0</span> 个）</span>
+        </div>
+        <div class="card-header-actions">
+          <button class="icon-btn" onclick="previewResult()" title="预览" aria-label="预览已抽号">👁</button>
+          <button class="icon-btn" onclick="copyResult()" title="复制" aria-label="复制已抽号">📋</button>
+        </div>
+      </div>
+      <div id="resultDisplay"></div>
+    </div>
+    <div class="result-block scroll-target" id="remainingBlock" style="display:none">
+      <div class="card-header">
+        <div class="card-header-title">
+          <h3>📦 剩余号</h3>
+          <span class="card-count" id="remainingCountBadge" hidden>（共 <span class="card-count-num" id="remainingCount">0</span> 个）</span>
+        </div>
+        <div class="card-header-actions">
+          <button class="icon-btn" onclick="previewRemaining()" title="预览" aria-label="预览剩余号">👁</button>
+          <button class="icon-btn" onclick="copyRemaining()" title="复制" aria-label="复制剩余号">📋</button>
+        </div>
+      </div>
+      <div id="remainingDisplay"></div>
+    </div>
+  </div>
+
+  <!-- History Card -->
+  <div class="card" id="historyCard" style="display:none">
+    <div class="card-header">
+      <div class="card-header-title">
+        <h3>📜 抽取记录</h3>
+      </div>
+      <div class="card-header-actions">
+        <button class="icon-btn" onclick="clearHistory()" title="清空记录" aria-label="清空记录">🗑️</button>
+      </div>
+    </div>
+    <div class="history-list" id="historyList"></div>
+  </div>
+</div>
+
+<button type="button" class="back-top" id="btnBackTop" onclick="scrollToTop()" aria-label="返回顶部" title="返回顶部">↑</button>
+
+<!-- Fixed Control Dock -->
+<div class="control-dock" id="controlCard">
+  <div class="btn-group">
+    <button class="btn btn-accent" onclick="shuffleAndPick()" id="btnShufflePick">
+      <span class="icon">🎲</span> 乱序抽号
+    </button>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal-overlay modal-center" id="settingsModal" onclick="onSettingsModalClick(event)">
+  <div class="modal-sheet modal-sheet-sm">
+    <div class="modal-header">
+      <h3>⚙️ 设置</h3>
+      <button class="icon-btn" onclick="closeSettingsModal()" title="关闭" aria-label="关闭">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="settings-form">
+        <div class="settings-field">
+          <label class="settings-label">🎯 抽取数</label>
+          <div class="settings-control">
+            <div class="count-stepper">
+              <button type="button" class="stepper-btn" onclick="adjustPick(-1)" aria-label="减少">−</button>
+              <input type="text" class="count-input" id="pickCount" value="1" inputmode="numeric" pattern="[0-9]*" autocomplete="off" aria-label="抽取数量">
+              <button type="button" class="stepper-btn" onclick="adjustPick(1)" aria-label="增加">+</button>
+            </div>
+          </div>
+        </div>
+        <div class="settings-field">
+          <label class="settings-label">🎨 外观</label>
+          <div class="settings-control">
+            <button type="button" class="btn-theme" id="btnTheme" onclick="toggleTheme()">暗色</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Fullscreen Preview -->
+<div class="preview-overlay" id="previewModal">
+  <div class="preview-header">
+    <div class="preview-title">
+      <h3 id="previewTitle">预览</h3>
+      <span class="card-count" id="previewCountBadge" hidden>（共 <span class="card-count-num" id="previewCount">0</span> 个）</span>
+    </div>
+    <div class="preview-actions">
+      <button class="icon-btn" onclick="previewCopy()" title="复制" aria-label="复制">📋</button>
+      <button class="icon-btn" onclick="closePreview()" title="关闭" aria-label="关闭">✕</button>
+    </div>
+  </div>
+  <div class="preview-body">
+    <div id="previewDisplay" class="num-display"></div>
+  </div>
+</div>
+
+<!-- Copy Fallback Modal -->
+<div class="modal-overlay modal-center" id="copyModal" onclick="onCopyModalClick(event)">
+  <div class="modal-sheet modal-sheet-sm">
+    <div class="modal-header">
+      <h3>📋 复制内容</h3>
+      <button class="icon-btn" onclick="closeCopyModal()" title="关闭" aria-label="关闭">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="copy-fallback-tip">自动复制未成功，请长按下方内容全选后复制，或点击「再试一次」。</p>
+      <textarea id="copyFallbackText" class="copy-fallback-text"></textarea>
+      <div class="copy-fallback-actions">
+        <button type="button" class="btn btn-accent" onclick="retryCopyFromModal()">再试一次</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

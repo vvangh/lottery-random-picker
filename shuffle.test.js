@@ -6,7 +6,7 @@ import {
   pickMinimalSortedConsecutive,
   pickHeadAfterShuffle,
   remainderAfterPick,
-} from './shuffle.js';
+} from './src/js/shuffle.js';
 
 describe('parseInput', () => {
   it('parses space-separated numbers', () => {

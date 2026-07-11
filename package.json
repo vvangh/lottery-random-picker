@@ -2,11 +2,15 @@
   "name": "random-picker",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@11.9.0",
   "scripts": {
+    "build": "node scripts/build-single.mjs",
+    "build:single": "node scripts/build-single.mjs",
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "devDependencies": {
+    "esbuild": "^0.25.0",
     "vitest": "^3.2.4"
   }
 }
