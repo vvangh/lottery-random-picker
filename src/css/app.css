@@ -20,9 +20,9 @@
   --ease: cubic-bezier(.22,1,.36,1);
   --dock-height: 72px;
   --dock-bg: rgba(15,15,26,.92);
-  --header-height: 56px;
+  --header-height: 60px;
   --header-bg: rgba(15,15,26,.92);
-  --page-nav-height: 44px;
+  --page-nav-height: 48px;
   --content-top-gap: 16px;
   --nav-stack-height: calc(var(--header-height) + var(--page-nav-height));
   --shell-max: 480px;
@@ -52,6 +52,7 @@ body.has-page-nav .app{
 .app-header{
   position:fixed;top:0;left:0;right:0;z-index:100;
   max-width:var(--shell-max);margin:0 auto;
+  min-height:calc(var(--header-height) + env(safe-area-inset-top));
   padding:calc(10px + env(safe-area-inset-top)) var(--page-padding-x) 10px;
   background:var(--header-bg);
   backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
@@ -78,10 +79,11 @@ body.has-page-nav .app{
   position:fixed;
   top:calc(var(--header-height) + env(safe-area-inset-top));
   left:0;right:0;
-  z-index:95;
+  z-index:99;
   max-width:var(--shell-max);margin:0 auto;
-  display:flex;gap:8px;
-  padding:8px var(--page-padding-x) 10px;
+  min-height:var(--page-nav-height);
+  display:flex;align-items:center;gap:8px;
+  padding:10px var(--page-padding-x) 12px;
   overflow-x:auto;-webkit-overflow-scrolling:touch;
   scrollbar-width:none;
   background:var(--header-bg);
@@ -92,9 +94,9 @@ body.has-page-nav .app{
 .page-nav[hidden]{display:none !important}
 .page-nav::-webkit-scrollbar{display:none}
 .page-nav-btn{
-  flex-shrink:0;padding:7px 14px;border-radius:999px;
+  flex-shrink:0;padding:8px 14px;border-radius:999px;
   border:1px solid var(--border);background:var(--surface);
-  color:var(--text2);font-size:12px;font-weight:600;
+  color:var(--text2);font-size:12px;font-weight:600;line-height:1.25;
   cursor:pointer;transition:all .2s var(--ease);
   -webkit-user-select:none;user-select:none;
 }

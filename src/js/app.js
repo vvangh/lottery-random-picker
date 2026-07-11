@@ -67,6 +67,35 @@ function setRemainingBlockVisible(visible){
   else remainingBlock.setAttribute('hidden', '');
 }
 
+function syncItemsFromInput(){
+  items = parseInput(inputText.value);
+  updateCountBadge(itemCountBadge, itemCount, items.length);
+  updateClearBtn();
+  updatePreviewBtns();
+  return items;
+}
+
+function computeRemainingList(){
+  if(!shuffled.length || !result.length) return [];
+  return remainderAfterPick(shuffled, result);
+}
+
+function renderRemainingPanel(){
+  remaining = computeRemainingList();
+  updateCountBadge(remainingCountBadge, remainingCount, remaining.length);
+  if(!remaining.length){
+    setRemainingBlockVisible(false);
+    remainingDisplay.innerHTML = '';
+    return;
+  }
+  setRemainingBlockVisible(true);
+  remainingDisplay.innerHTML = '';
+  const div = document.createElement('div');
+  div.className = 'num-display num-display--remaining';
+  renderNumDisplay(div, remaining);
+  remainingDisplay.appendChild(div);
+}
+
 function syncLayoutState(){
   document.body.classList.toggle('has-results', result.length > 0);
   document.body.classList.toggle('has-remaining', remaining.length > 0);
@@ -76,6 +105,7 @@ function syncLayoutState(){
 applyTheme();
 renderHistory();
 pickCount.value = localStorage.getItem('rh_pick_count') || '1';
+syncItemsFromInput();
 updatePreviewBtns();
 initPageNav();
 
@@ -102,18 +132,26 @@ function pickFromShuffled({ notify = false, highlight = false } = {}){
   if(n > shuffled.length) n = shuffled.length;
   pickCount.value = n;
   result = pickMinimalSortedConsecutive(shuffled, n);
-  remaining = remainderAfterPick(shuffled, result);
   updateCountBadge(resultCountBadge, resultCount, result.length);
-  updateCountBadge(remainingCountBadge, remainingCount, remaining.length);
   setResultCardVisible(result.length > 0);
   showResult(result);
-  showRemaining(remaining);
+  renderRemainingPanel();
   updatePageNav();
   if(notify){
     triggerHaptic();
     highlightResultCard();
-    const scrollTarget = remaining.length > 0 ? remainingBlock : resultCard;
-    requestAnimationFrame(() => scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    if(remaining.length > 0){
+      showToast(`已抽 ${result.length} 个，剩余 ${remaining.length} 个`);
+    } else if(shuffled.length === result.length){
+      showToast(`已抽满 ${result.length} 个，无剩余号`);
+    }
+    requestAnimationFrame(() => {
+      if(remaining.length > 0){
+        remainingBlock.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        resultCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
   } else if(highlight){
     highlightResultCard();
   }
@@ -121,11 +159,7 @@ function pickFromShuffled({ notify = false, highlight = false } = {}){
 }
 
 function onInput(){
-  const raw = inputText.value;
-  items = parseInput(raw);
-  updateCountBadge(itemCountBadge, itemCount, items.length);
-  updateClearBtn();
-  updatePreviewBtns();
+  syncItemsFromInput();
   if(shuffled.length || result.length){
     shuffled = [];
     result = [];
@@ -181,20 +215,6 @@ function showResult(selected){
   resultDisplay.appendChild(div);
 }
 
-function showRemaining(list){
-  if(!list.length){
-    setRemainingBlockVisible(false);
-    remainingDisplay.innerHTML = '';
-    return;
-  }
-  setRemainingBlockVisible(true);
-  remainingDisplay.innerHTML = '';
-  const div = document.createElement('div');
-  div.className = 'num-display num-display--remaining';
-  renderNumDisplay(div, list);
-  remainingDisplay.appendChild(div);
-}
-
 function highlightResultCard(){
   resultCard.classList.remove('result-area--breathing');
   void resultCard.offsetWidth;
@@ -204,8 +224,8 @@ function highlightResultCard(){
   }, { once: true });
 }
 
-// ===== Main: Shuffle + Pick in one =====
 function shuffleAndPick(){
+  syncItemsFromInput();
   if(items.length === 0){
     showToast('请先输入号码');
     inputText.style.animation = 'none';
@@ -507,8 +527,8 @@ function clearAll(){
 // ===== Page nav & back to top =====
 function getScrollAnchorOffset(){
   const navVisible = pageNav && !pageNav.hidden;
-  const header = 56;
-  const nav = navVisible ? 44 : 0;
+  const header = 60;
+  const nav = navVisible ? 48 : 0;
   return header + nav + 12;
 }
 
@@ -556,7 +576,7 @@ function updatePageNav(){
   syncLayoutState();
   const hasResultArea = result.length > 0;
   const hasPicked = hasResultArea;
-  const hasRemainingNav = remaining.length > 0;
+  const hasRemainingNav = remaining.length > 0 || (shuffled.length > result.length && result.length > 0);
   if(navPicked) navPicked.hidden = !hasPicked;
   if(navRemaining) navRemaining.hidden = !hasRemainingNav;
   pageNav.hidden = !hasResultArea;
