@@ -750,7 +750,10 @@ body.has-page-nav{
     const rest = [...pool];
     for (const v of picked) {
       const i = rest.indexOf(v);
-      if (i !== -1) rest.splice(i, 1);
+      if (i === -1) {
+        throw new Error(`remainderAfterPick: \u5DF2\u62BD\u53F7\u300C${v}\u300D\u4E0D\u5728\u53F7\u7801\u6C60\u4E2D`);
+      }
+      rest.splice(i, 1);
     }
     return rest;
   }

@@ -6,6 +6,7 @@ import {
   pickMinimalSortedConsecutive,
   pickHeadAfterShuffle,
   remainderAfterPick,
+  shufflePickWithRemaining,
 } from './src/js/shuffle.js';
 
 /** 多重集合排序键（支持重复号码） */
@@ -17,6 +18,10 @@ function assertPartition(pool, picked, remaining, { allowDuplicateValues = false
   expect(picked.length + remaining.length).toBe(pool.length);
   expect(multisetKey([...picked, ...remaining])).toBe(multisetKey(pool));
   expect(remainderAfterPick(pool, picked)).toEqual(remaining);
+
+  for (const v of picked) {
+    expect(pool.includes(v), `已抽号「${v}」必须来自号码池`).toBe(true);
+  }
 
   if (!allowDuplicateValues) {
     const seen = new Set();
@@ -30,7 +35,13 @@ function assertPartition(pool, picked, remaining, { allowDuplicateValues = false
       seen.add(v);
     }
     expect(seen.size).toBe(pool.length);
+    expect(picked.length + remaining.length).toBe(pool.length);
   }
+}
+
+function assertAppInvariant(items, picked, remaining) {
+  expect(picked.length + remaining.length).toBe(items.length);
+  expect(multisetKey([...picked, ...remaining])).toBe(multisetKey(items));
 }
 
 function makeUniquePool(size) {
@@ -55,7 +66,7 @@ function seededRandom(seed) {
 }
 
 /** 大池严格校验最少轮次 */
-const STRICT_ROUNDS = 25;
+const STRICT_ROUNDS = 50;
 
 function runStrictPickRound(pool, n, seed, { allowDuplicateValues = false } = {}) {
   const picked = pickMinimalSortedConsecutive(pool, n, seededRandom(seed));
@@ -228,6 +239,59 @@ describe('已抽号与剩余号 — 大池严格校验', { timeout: 120_000 }, (
       runStrictPickRound(shuffled, n, round + 12000, {
         allowDuplicateValues: useDuplicate,
       });
+    }
+  });
+});
+
+describe('已抽号与剩余号 — 应用全流程', { timeout: 120_000 }, () => {
+  const text1000 = Array.from({ length: 1000 }, (_, i) => String(i).padStart(4, '0')).join(' ');
+
+  it(`parseInput → 开抽：${STRICT_ROUNDS} 轮数量与无交集`, () => {
+    const items = parseInput(text1000);
+    expect(items.length).toBeGreaterThanOrEqual(1000);
+
+    for (let round = 0; round < STRICT_ROUNDS; round++) {
+      const n = 1 + ((round * 41) % 900);
+      const { shuffled, picked, remaining } = shufflePickWithRemaining(
+        items,
+        n,
+        seededRandom(round * 3 + 1),
+        seededRandom(round * 7 + 2),
+      );
+      expect(shuffled).toHaveLength(items.length);
+      assertPartition(shuffled, picked, remaining);
+      assertAppInvariant(items, picked, remaining);
+    }
+  });
+
+  it(`含重复号码输入：${STRICT_ROUNDS} 轮多重集合守恒`, () => {
+    const dupText = `${text1000} 0001 0001 0500 0500 0999 0999 0999`;
+    const items = parseInput(dupText);
+    expect(items.length).toBeGreaterThanOrEqual(1000);
+
+    for (let round = 0; round < STRICT_ROUNDS; round++) {
+      const n = 50 + (round % 200);
+      const { shuffled, picked, remaining } = shufflePickWithRemaining(
+        items,
+        n,
+        seededRandom(round + 100),
+        seededRandom(round + 200),
+      );
+      assertPartition(shuffled, picked, remaining, { allowDuplicateValues: true });
+      assertAppInvariant(items, picked, remaining);
+    }
+  });
+
+  it('修改抽取数后重抽：同一乱序池分区仍正确', () => {
+    const items = parseInput(text1000);
+    const rnd = seededRandom(2026);
+    const shuffled = fisherYates([...items], rnd);
+
+    for (let round = 0; round < STRICT_ROUNDS; round++) {
+      const n = 10 + ((round * 17) % 400);
+      const picked = pickMinimalSortedConsecutive(shuffled, n, seededRandom(round + 3000));
+      const remaining = remainderAfterPick(shuffled, picked);
+      assertPartition(shuffled, picked, remaining);
     }
   });
 });

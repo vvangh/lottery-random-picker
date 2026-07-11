@@ -72,7 +72,18 @@ export function remainderAfterPick(pool, picked) {
   const rest = [...pool];
   for (const v of picked) {
     const i = rest.indexOf(v);
-    if (i !== -1) rest.splice(i, 1);
+    if (i === -1) {
+      throw new Error(`remainderAfterPick: 已抽号「${v}」不在号码池中`);
+    }
+    rest.splice(i, 1);
   }
   return rest;
+}
+
+/** 与 app 一致：乱序 → 抽取 → 剩余 */
+export function shufflePickWithRemaining(items, n, randomShuffle = Math.random, randomPick = Math.random) {
+  const shuffled = fisherYates([...items], randomShuffle);
+  const picked = pickMinimalSortedConsecutive(shuffled, n, randomPick);
+  const remaining = remainderAfterPick(shuffled, picked);
+  return { shuffled, picked, remaining };
 }
