@@ -8,6 +8,64 @@ import {
   remainderAfterPick,
 } from './src/js/shuffle.js';
 
+/** 多重集合排序键（支持重复号码） */
+function multisetKey(arr) {
+  return [...arr].sort().join('\0');
+}
+
+function assertPartition(pool, picked, remaining, { allowDuplicateValues = false } = {}) {
+  expect(picked.length + remaining.length).toBe(pool.length);
+  expect(multisetKey([...picked, ...remaining])).toBe(multisetKey(pool));
+  expect(remainderAfterPick(pool, picked)).toEqual(remaining);
+
+  if (!allowDuplicateValues) {
+    const seen = new Set();
+    for (const v of picked) {
+      expect(seen.has(v), `已抽号内不应有重复「${v}」`).toBe(false);
+      seen.add(v);
+      expect(remaining.includes(v), `已抽号「${v}」不应出现在剩余号中`).toBe(false);
+    }
+    for (const v of remaining) {
+      expect(seen.has(v), `剩余号「${v}」不应与已抽号重复`).toBe(false);
+      seen.add(v);
+    }
+    expect(seen.size).toBe(pool.length);
+  }
+}
+
+function makeUniquePool(size) {
+  return Array.from({ length: size }, (_, i) => String(i).padStart(4, '0'));
+}
+
+/** 约 1200 项，含重复号码（001 出现 3 次等） */
+function makeDuplicatePool() {
+  const pool = makeUniquePool(1000);
+  pool.push('0001', '0001', '0001');
+  pool.push('0500', '0500');
+  pool.push('0999', '0999', '0999', '0999');
+  return pool;
+}
+
+function seededRandom(seed) {
+  let s = seed;
+  return () => {
+    s = (s * 1664525 + 1013904223) >>> 0;
+    return s / 0x100000000;
+  };
+}
+
+/** 大池严格校验最少轮次 */
+const STRICT_ROUNDS = 25;
+
+function runStrictPickRound(pool, n, seed, { allowDuplicateValues = false } = {}) {
+  const picked = pickMinimalSortedConsecutive(pool, n, seededRandom(seed));
+  const remaining = remainderAfterPick(pool, picked);
+  const expectedPickLen = Math.min(n, pool.length);
+  expect(picked).toHaveLength(expectedPickLen);
+  assertPartition(pool, picked, remaining, { allowDuplicateValues });
+  return { picked, remaining };
+}
+
 describe('parseInput', () => {
   it('parses space-separated numbers', () => {
     expect(parseInput('000 002 003')).toEqual(['000', '002', '003']);
@@ -106,7 +164,70 @@ describe('remainderAfterPick', () => {
     const remaining = remainderAfterPick(pool, picked);
     expect(picked).toHaveLength(12);
     expect(remaining).toHaveLength(38);
-    expect([...picked, ...remaining].sort()).toEqual([...pool].sort());
-    picked.forEach(v => expect(remaining).not.toContain(v));
+    assertPartition(pool, picked, remaining);
+  });
+});
+
+describe('已抽号与剩余号 — 大池严格校验', { timeout: 120_000 }, () => {
+  const uniquePool = makeUniquePool(1000);
+  const duplicatePool = makeDuplicatePool();
+
+  it(`唯一号码池 ≥1000：多种抽取数 × ${STRICT_ROUNDS} 轮分区正确`, () => {
+    const pickCounts = [1, 2, 50, 499, 500, 999, 1000, 1500];
+    for (const n of pickCounts) {
+      for (let round = 0; round < STRICT_ROUNDS; round++) {
+        runStrictPickRound(uniquePool, n, round + n * 997);
+      }
+    }
+  });
+
+  it(`含重复号码池 ≥1000：多种抽取数 × ${STRICT_ROUNDS} 轮多重集合分区正确`, () => {
+    expect(duplicatePool.length).toBeGreaterThanOrEqual(1000);
+    const pickCounts = [1, 100, 500, 999, 1000, 1200];
+    for (const n of pickCounts) {
+      for (let round = 0; round < STRICT_ROUNDS; round++) {
+        runStrictPickRound(duplicatePool, n, round + n * 131, { allowDuplicateValues: true });
+      }
+    }
+  });
+
+  it(`全抽：两种池各 ${STRICT_ROUNDS} 轮剩余为空`, () => {
+    for (const pool of [uniquePool, duplicatePool]) {
+      for (let round = 0; round < STRICT_ROUNDS; round++) {
+        const { picked, remaining } = runStrictPickRound(
+          pool,
+          pool.length,
+          round + 9001,
+          { allowDuplicateValues: pool !== uniquePool },
+        );
+        expect(remaining).toEqual([]);
+        expect(multisetKey(picked)).toBe(multisetKey(pool));
+      }
+    }
+  });
+
+  it(`乱序后再抽取：${STRICT_ROUNDS} 轮已抽+剩余等于乱序池`, () => {
+    for (let round = 0; round < STRICT_ROUNDS; round++) {
+      const shuffled = fisherYates([...uniquePool], seededRandom(round));
+      expect(shuffled).toHaveLength(uniquePool.length);
+      expect(multisetKey(shuffled)).toBe(multisetKey(uniquePool));
+
+      const n = 100 + (round * 37) % 400;
+      runStrictPickRound(shuffled, n, round + 5000);
+    }
+  });
+
+  it(`全流程压测：${STRICT_ROUNDS} 轮（乱序 → 抽取 → 校验）`, () => {
+    for (let round = 0; round < STRICT_ROUNDS; round++) {
+      const useDuplicate = round % 2 === 1;
+      const pool = useDuplicate ? duplicatePool : uniquePool;
+      const shuffled = fisherYates([...pool], seededRandom(round * 17 + 3));
+      expect(multisetKey(shuffled)).toBe(multisetKey(pool));
+
+      const n = 1 + ((round * 53) % Math.min(800, pool.length - 1));
+      runStrictPickRound(shuffled, n, round + 12000, {
+        allowDuplicateValues: useDuplicate,
+      });
+    }
   });
 });
