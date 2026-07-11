@@ -57,6 +57,23 @@ const navPicked = $('#navPicked');
 const navRemaining = $('#navRemaining');
 const btnBackTop = $('#btnBackTop');
 
+function setResultCardVisible(visible){
+  if(visible) resultCard.removeAttribute('hidden');
+  else resultCard.setAttribute('hidden', '');
+}
+
+function setRemainingBlockVisible(visible){
+  if(visible) remainingBlock.removeAttribute('hidden');
+  else remainingBlock.setAttribute('hidden', '');
+}
+
+function syncLayoutState(){
+  const hasResults = result.length > 0 && !resultCard.hidden;
+  const hasRemaining = remaining.length > 0 && !remainingBlock.hidden;
+  document.body.classList.toggle('has-results', hasResults);
+  document.body.classList.toggle('has-remaining', hasRemaining);
+}
+
 // ===== Init =====
 applyTheme();
 renderHistory();
@@ -92,7 +109,7 @@ function pickFromShuffled({ notify = false, highlight = false } = {}){
   updateCountBadge(remainingCountBadge, remainingCount, remaining.length);
   showResult(result);
   showRemaining(remaining);
-  resultCard.style.display = 'block';
+  setResultCardVisible(true);
   updatePageNav();
   if(notify){
     triggerHaptic();
@@ -115,10 +132,10 @@ function onInput(){
     result = [];
     remaining = [];
     hidePoolBtn();
-    resultCard.style.display = 'none';
+    setResultCardVisible(false);
     updateCountBadge(resultCountBadge, resultCount, 0);
     updateCountBadge(remainingCountBadge, remainingCount, 0);
-    remainingBlock.style.display = 'none';
+    setRemainingBlockVisible(false);
   }
   updatePageNav();
 }
@@ -167,12 +184,12 @@ function showResult(selected){
 
 function showRemaining(list){
   if(!list.length){
-    remainingBlock.style.display = 'none';
+    setRemainingBlockVisible(false);
     remainingDisplay.innerHTML = '';
     updatePageNav();
     return;
   }
-  remainingBlock.style.display = 'block';
+  setRemainingBlockVisible(true);
   remainingDisplay.innerHTML = '';
   const div = document.createElement('div');
   div.className = 'num-display num-display--remaining';
@@ -481,8 +498,8 @@ function clearAll(){
   updateCountBadge(resultCountBadge, resultCount, 0);
   updateCountBadge(remainingCountBadge, remainingCount, 0);
   btnClear.disabled = true;
-  resultCard.style.display = 'none';
-  remainingBlock.style.display = 'none';
+  setResultCardVisible(false);
+  setRemainingBlockVisible(false);
   hidePoolBtn();
   updatePreviewBtns();
   updatePageNav();
@@ -509,9 +526,10 @@ function scrollToTop(){
 
 function updatePageNav(){
   if(!pageNav) return;
-  const hasResultArea = result.length > 0 && getComputedStyle(resultCard).display !== 'none';
+  syncLayoutState();
+  const hasResultArea = result.length > 0 && !resultCard.hidden;
   const hasPicked = hasResultArea;
-  const hasRemaining = remaining.length > 0 && getComputedStyle(remainingBlock).display !== 'none';
+  const hasRemaining = remaining.length > 0 && !remainingBlock.hidden;
   if(navPicked) navPicked.hidden = !hasPicked;
   if(navRemaining) navRemaining.hidden = !hasRemaining;
   pageNav.hidden = !hasResultArea;
