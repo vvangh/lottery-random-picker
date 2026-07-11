@@ -293,7 +293,7 @@ body.has-page-nav .scroll-target{
 }
 .result-area > .result-block{position:relative;z-index:1}
 .result-area--breathing{
-  animation:resultBreath 1.25s var(--ease) 2;
+  animation:resultBreath 0.85s var(--ease) 2;
 }
 .result-area--breathing::before{
   content:'';
@@ -305,7 +305,7 @@ body.has-page-nav .scroll-target{
     linear-gradient(to right, rgba(0,206,201,.18), transparent 28px),
     linear-gradient(to left, rgba(0,206,201,.18), transparent 28px);
   opacity:0;
-  animation:resultBreathInner 1.25s var(--ease) 2;
+  animation:resultBreathInner 0.85s var(--ease) 2;
 }
 @keyframes resultBreath{
   0%,100%{
