@@ -131,13 +131,11 @@ body.has-page-nav .scroll-target{
   color:var(--text);font-size:20px;font-weight:700;line-height:1;
   box-shadow:0 4px 20px rgba(0,0,0,.35);cursor:pointer;
   opacity:0;pointer-events:none;transform:translateY(10px);
-  transition:opacity .25s var(--ease),transform .25s var(--ease),border-color .25s var(--ease),color .25s var(--ease);
+  transition:opacity .25s var(--ease),transform .25s var(--ease);
   -webkit-user-select:none;user-select:none;
+  display:flex;align-items:center;justify-content:center;
 }
-.back-top.is-visible{
-  opacity:1;pointer-events:auto;transform:translateY(0);
-  border-color:rgba(0,206,201,.45);color:var(--accent);
-}
+.back-top.is-visible{opacity:1;pointer-events:auto;transform:translateY(0)}
 .back-top:active{transform:scale(.92)}
 .back-top.is-visible:active{transform:scale(.92)}
 @media (prefers-reduced-motion:reduce){
