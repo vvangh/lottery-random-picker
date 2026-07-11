@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#1a1a2e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>随机抽号器</title>
+<link rel="manifest" href="manifest.json">
+<style>
+/* ===== Reset & Base ===== */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg: #0f0f1a;
+  --surface: rgba(255,255,255,.06);
+  --surface-hover: rgba(255,255,255,.10);
+  --surface-active: rgba(255,255,255,.14);
+  --border: rgba(255,255,255,.08);
+  --text: #e8e8f0;
+  --text2: #9898b8;
+  --primary: #6c5ce7;
+  --primary-glow: rgba(108,92,231,.35);
+  --accent: #00cec9;
+  --accent-glow: rgba(0,206,201,.25);
+  --danger: #ff6b6b;
+  --radius: 16px;
+  --radius-sm: 10px;
+  --font: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans SC",sans-serif;
+  --shadow: 0 8px 32px rgba(0,0,0,.4);
+  --ease: cubic-bezier(.22,1,.36,1);
+  --dock-height: 72px;
+  --dock-bg: rgba(15,15,26,.92);
+  --header-height: 56px;
+  --header-bg: rgba(15,15,26,.92);
+  --content-top-gap: 16px;
+}
+body{
+  font-family:var(--font);background:var(--bg);color:var(--text);
+  min-height:100dvh;padding:0;
+  -webkit-tap-highlight-color:transparent;overscroll-behavior:none;
+}
+body::before{
+  content:'';position:fixed;inset:0;
+  background:
+    radial-gradient(ellipse 80% 60% at 10% 20%, rgba(108,92,231,.15), transparent),
+    radial-gradient(ellipse 60% 50% at 90% 80%, rgba(0,206,201,.10), transparent);
+  pointer-events:none;z-index:0;
+}
+.app{position:relative;z-index:1;max-width:480px;margin:0 auto;
+  padding:calc(var(--header-height) + env(safe-area-inset-top) + var(--content-top-gap)) 16px calc(var(--dock-height) + env(safe-area-inset-bottom) + 8px)}
+
+/* ===== Fixed Header ===== */
+.app-header{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  max-width:480px;margin:0 auto;
+  padding:calc(10px + env(safe-area-inset-top)) 16px 10px;
+  background:var(--header-bg);
+  backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  border-bottom:1px solid var(--border);
+  box-shadow:0 4px 24px rgba(0,0,0,.2);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.app-header h1{font-size:20px;font-weight:700;letter-spacing:-.3px;
+  background:linear-gradient(135deg,#6c5ce7,#00cec9);-webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;background-clip:text}
+.header-actions{display:flex;gap:8px}
+.icon-btn{
+  width:40px;height:40px;border-radius:50%;border:none;cursor:pointer;
+  background:var(--surface);color:var(--text2);font-size:18px;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .2s var(--ease);
+  -webkit-user-select:none;user-select:none;
+}
+.icon-btn:active{transform:scale(.88);background:var(--surface-active)}
+.icon-btn:hover{background:var(--surface-hover)}
+
+/* ===== Card ===== */
+.card{
+  background:var(--surface);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border:1px solid var(--border);border-radius:var(--radius);padding:20px;
+  margin-bottom:16px;transition:all .3s var(--ease);
+}
+
+/* ===== Card header ===== */
+.card-header{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:12px;gap:8px;
+}
+.card-header-title{display:flex;align-items:baseline;gap:8px;min-width:0;flex:1}
+.card-header-title h3{font-size:15px;font-weight:600;color:var(--text2);white-space:nowrap}
+.card-count{font-size:12px;color:var(--text2);white-space:nowrap}
+.card-count-num{color:var(--accent);font-weight:700;font-size:15px;font-variant-numeric:tabular-nums}
+.card-header-actions,.modal-actions{display:flex;gap:6px;flex-shrink:0}
+.card-header-actions .icon-btn,.modal-actions .icon-btn{width:34px;height:34px;font-size:15px}
+
+/* ===== Textarea ===== */
+.input-area{display:flex;flex-direction:column}
+.input-area .card-footer{
+  display:flex;justify-content:flex-end;margin-top:10px;
+}
+.input-area textarea{
+  width:100%;height:96px;max-height:min(96px,18dvh);
+  padding:12px 14px;border-radius:var(--radius-sm);
+  background:rgba(0,0,0,.3);border:1px solid var(--border);color:var(--text);
+  font-size:13px;line-height:1.5;font-family:ui-monospace,'SF Mono','Cascadia Code',Consolas,monospace;
+  resize:none;transition:all .2s var(--ease);outline:none;
+  word-break:break-all;overflow-y:auto;-webkit-overflow-scrolling:touch;
+}
+.input-area textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-glow)}
+.input-area textarea::placeholder{color:var(--text2);font-size:14px}
+
+/* ===== Number text display ===== */
+.num-display{
+  width:100%;padding:12px 14px;border-radius:var(--radius-sm);
+  background:rgba(0,0,0,.3);border:1px solid var(--border);color:var(--text);
+  font-size:13px;line-height:1.5;
+  font-family:ui-monospace,'SF Mono','Cascadia Code',Consolas,monospace;
+  word-break:break-all;white-space:pre-wrap;
+  overflow-y:auto;-webkit-overflow-scrolling:touch;
+}
+.num-display--pool{
+  background:rgba(108,92,231,.10);
+  border-color:rgba(108,92,231,.35);
+}
+.num-display--result{
+  background:rgba(0,206,201,.10);
+  border-color:rgba(0,206,201,.40);
+}
+.result-area .num-display{
+  max-height:min(96px,18dvh);
+}
+
+/* ===== Control row ===== */
+.control-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.control-row label{font-size:13px;font-weight:600;color:var(--text2);white-space:nowrap}
+.count-stepper{
+  display:inline-flex;align-items:stretch;
+  border-radius:var(--radius-sm);overflow:hidden;
+  background:rgba(0,0,0,.3);border:1px solid var(--border);
+}
+.stepper-btn{
+  width:40px;border:none;cursor:pointer;
+  background:var(--surface);color:var(--text);
+  font-size:22px;font-weight:500;line-height:1;
+  display:flex;align-items:center;justify-content:center;
+  transition:background .2s var(--ease);
+  -webkit-user-select:none;user-select:none;
+}
+.stepper-btn:active{background:var(--surface-active);transform:scale(.94)}
+.control-row .count-input{
+  width:52px;padding:10px 4px;border:none;border-radius:0;
+  background:transparent;color:var(--text);
+  font-size:18px;font-weight:700;text-align:center;outline:none;
+  -moz-appearance:textfield;appearance:textfield;
+}
+.control-row .count-input::-webkit-inner-spin-button,
+.control-row .count-input::-webkit-outer-spin-button{
+  -webkit-appearance:none;margin:0;
+}
+
+/* ===== Buttons ===== */
+.btn-group{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.btn{
+  flex:1;min-width:0;padding:14px 20px;border-radius:var(--radius-sm);
+  border:none;font-size:15px;font-weight:700;cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  transition:all .2s var(--ease);-webkit-user-select:none;user-select:none;
+}
+.btn:active{transform:scale(.94)}
+.btn-accent{
+  background:linear-gradient(135deg,#00cec9,#81ecec);
+  color:#0f0f1a;box-shadow:0 4px 16px var(--accent-glow);
+}
+.btn-accent:active{box-shadow:0 2px 8px var(--accent-glow)}
+
+/* ===== Fixed bottom dock ===== */
+.control-dock{
+  position:fixed;bottom:0;left:0;right:0;z-index:100;
+  max-width:480px;margin:0 auto;
+  padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+  background:var(--dock-bg);
+  backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  border-top:1px solid var(--border);
+  box-shadow:0 -8px 32px rgba(0,0,0,.35);
+}
+.control-dock .btn-group{margin-top:0}
+.settings-form{display:flex;flex-direction:column;gap:14px}
+.settings-field{
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+}
+.settings-label{
+  font-size:14px;font-weight:600;color:var(--text);
+  flex-shrink:0;
+}
+.settings-control{flex:0 0 148px;width:148px}
+.settings-control .count-stepper{display:flex;width:100%}
+.settings-control .count-stepper .count-input{
+  flex:1;width:auto;min-width:0;padding:8px 2px;
+  border:none;background:transparent;color:var(--accent);
+  font-size:17px;font-weight:700;text-align:center;outline:none;
+  -webkit-appearance:none;appearance:none;
+}
+.settings-control .count-stepper .count-input:focus{outline:none}
+.settings-control .count-stepper .count-input:-webkit-autofill,
+.settings-control .count-stepper .count-input:-webkit-autofill:hover,
+.settings-control .count-stepper .count-input:-webkit-autofill:focus{
+  -webkit-box-shadow:0 0 0 1000px rgba(0,0,0,.25) inset;
+  -webkit-text-fill-color:var(--accent);
+  transition:background-color 9999s ease-out;
+}
+.settings-control .btn-theme{
+  width:100%;padding:9px 12px;text-align:center;font-size:12px;
+}
+.btn-theme{
+  border-radius:var(--radius-sm);
+  border:1px solid var(--border);background:var(--surface);color:var(--text);
+  font-size:13px;font-weight:600;cursor:pointer;
+  transition:all .2s var(--ease);
+  -webkit-user-select:none;user-select:none;
+}
+.btn-theme:active{transform:scale(.97);background:var(--surface-active)}
+.modal-sheet-sm{
+  max-height:none;margin:20px 16px;
+  border-radius:var(--radius);overflow:hidden;
+}
+.modal-overlay.modal-center{align-items:center}
+.modal-overlay.modal-center .modal-sheet{
+  transform:scale(.92);opacity:0;
+  transition:transform .3s var(--ease),opacity .3s var(--ease);
+  border-radius:var(--radius);
+}
+.modal-overlay.modal-center.show .modal-sheet{transform:scale(1);opacity:1}
+
+/* ===== Result ===== */
+.result-area{margin-top:8px}
+.result-area--breathing{
+  animation:resultBreath 1.5s var(--ease) 3;
+}
+@keyframes resultBreath{
+  0%,100%{
+    box-shadow:none;
+    border-color:var(--border);
+  }
+  50%{
+    box-shadow:0 0 28px var(--accent-glow),0 0 0 1px rgba(0,206,201,.45);
+    border-color:rgba(0,206,201,.55);
+  }
+}
+@media (prefers-reduced-motion:reduce){
+  .result-area--breathing{animation:none;border-color:rgba(0,206,201,.45)}
+}
+
+/* ===== History ===== */
+.history-list{margin-top:12px}
+.history-item{
+  display:flex;align-items:center;gap:12px;
+  padding:10px 12px;border-radius:var(--radius-sm);
+  background:rgba(255,255,255,.03);margin-bottom:6px;
+  animation:fadeScale .2s var(--ease);cursor:pointer;
+  transition:background .2s;
+}
+.history-item:active{background:var(--surface-active)}
+.history-item .h-time{font-size:11px;color:var(--text2);white-space:nowrap;min-width:44px}
+.history-item .h-nums{display:flex;flex-wrap:wrap;gap:4px;flex:1}
+.history-item .h-nums span{
+  padding:2px 8px;border-radius:4px;font-size:13px;font-weight:600;
+  background:rgba(108,92,231,.12);color:var(--text);
+}
+.history-item .h-del{font-size:14px;color:var(--text2);border:none;background:none;cursor:pointer;padding:4px;opacity:.5}
+.history-item .h-del:active{opacity:1}
+@keyframes fadeScale{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}
+
+/* ===== Empty state ===== */
+.empty-state{text-align:center;padding:28px 0;color:var(--text2)}
+.empty-state .icon{font-size:42px;margin-bottom:12px;display:block}
+.empty-state p{font-size:14px;line-height:1.6}
+
+/* ===== Toast ===== */
+.toast{
+  position:fixed;
+  top:calc(var(--header-height) + env(safe-area-inset-top) + 12px);
+  bottom:auto;
+  left:50%;transform:translateX(-50%) translateY(-12px);
+  background:rgba(0,0,0,.85);color:#fff;padding:12px 24px;border-radius:30px;
+  font-size:14px;font-weight:500;z-index:999;
+  opacity:0;transition:all .3s var(--ease);pointer-events:none;
+  backdrop-filter:blur(10px);white-space:nowrap;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ===== Shake ===== */
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+.shake{animation:shake .4s var(--ease)}
+
+/* ===== Pool button & Modal ===== */
+.btn-view-pool{
+  display:none;flex-shrink:0;padding:6px 12px;
+  border-radius:var(--radius-sm);border:1px solid rgba(108,92,231,.25);
+  background:rgba(108,92,231,.12);color:var(--text);
+  font-size:12px;font-weight:600;cursor:pointer;
+  transition:all .2s var(--ease);
+  -webkit-user-select:none;user-select:none;
+}
+.btn-view-pool:active{transform:scale(.97);background:rgba(108,92,231,.2)}
+.modal-overlay{
+  position:fixed;inset:0;z-index:200;
+  background:rgba(0,0,0,.55);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+  display:flex;align-items:flex-end;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .3s var(--ease);
+}
+.modal-overlay.show{opacity:1;pointer-events:auto}
+.modal-sheet{
+  width:100%;max-width:480px;max-height:75dvh;
+  background:var(--bg);border:1px solid var(--border);
+  border-radius:var(--radius) var(--radius) 0 0;
+  padding:20px 16px calc(16px + env(safe-area-inset-bottom));
+  transform:translateY(100%);transition:transform .35s var(--ease);
+  display:flex;flex-direction:column;
+}
+.modal-overlay.show .modal-sheet{transform:translateY(0)}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-shrink:0;gap:8px}
+.modal-header h3{font-size:16px;font-weight:600;color:var(--text)}
+.modal-body{overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.copy-fallback-tip{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:10px}
+.copy-fallback-text{
+  width:100%;height:120px;padding:12px;border-radius:var(--radius-sm);
+  background:rgba(0,0,0,.3);border:1px solid var(--border);color:var(--text);
+  font-size:12px;line-height:1.5;font-family:ui-monospace,'SF Mono','Cascadia Code',Consolas,monospace;
+  resize:none;outline:none;word-break:break-all;
+}
+.copy-fallback-actions{display:flex;gap:10px;margin-top:12px}
+.copy-fallback-actions .btn{flex:1}
+
+/* ===== Fullscreen Preview ===== */
+.preview-overlay{
+  position:fixed;inset:0;z-index:300;
+  background:var(--bg);
+  display:flex;flex-direction:column;
+  opacity:0;pointer-events:none;
+  transition:opacity .3s var(--ease);
+  padding-top:env(safe-area-inset-top);
+  padding-bottom:env(safe-area-inset-bottom);
+}
+.preview-overlay.show{opacity:1;pointer-events:auto}
+.preview-header{
+  flex-shrink:0;display:flex;align-items:center;justify-content:space-between;
+  gap:12px;padding:12px 16px;
+  border-bottom:1px solid var(--border);
+  background:var(--header-bg);
+  backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+}
+.preview-title{display:flex;align-items:baseline;gap:8px;min-width:0;flex:1}
+.preview-title h3{font-size:16px;font-weight:600;color:var(--text);white-space:nowrap}
+.preview-actions{display:flex;gap:6px;flex-shrink:0}
+.preview-body{
+  flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;padding:16px;
+}
+
+/* ===== Responsive ===== */
+@media(max-width:360px){
+  .app{padding-left:12px;padding-right:12px}.card{padding:16px}
+  .app-header{padding-left:12px;padding-right:12px}
+}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:10px}
+</style>
+</head>
+<body>
+
+<!-- Fixed Header -->
+<div class="app-header">
+  <h1>✦ 随机抽号</h1>
+  <div class="header-actions">
+    <button class="icon-btn" onclick="openSettingsModal()" title="设置" aria-label="设置">⚙️</button>
+    <button class="icon-btn" onclick="clearAll()" title="清空所有" id="btnClear" disabled aria-label="清空">🗑️</button>
+  </div>
+</div>
+
+<div class="app" id="app">
+  <!-- Input Card -->
+  <div class="card input-area">
+    <div class="card-header">
+      <div class="card-header-title">
+        <h3>📋 号码列表</h3>
+        <span class="card-count">共 <span class="card-count-num" id="itemCount">0</span> 个</span>
+      </div>
+      <div class="card-header-actions">
+        <button type="button" class="icon-btn" id="btnPreviewItems" onclick="previewItems()" title="预览" aria-label="预览号码列表" style="display:none">👁</button>
+      </div>
+    </div>
+    <textarea id="inputText" enterkeyhint="done" placeholder="粘贴号码，空格分隔&#10;000 002 003 004 010 012 013 ..."></textarea>
+    <div class="card-footer">
+      <button type="button" class="btn-view-pool" id="btnViewPool" onclick="previewPool()">🃏 乱序池</button>
+    </div>
+  </div>
+
+  <!-- Result Card -->
+  <div class="card result-area" id="resultCard" style="display:none">
+    <div class="card-header">
+      <div class="card-header-title">
+        <h3>🎉 抽取结果</h3>
+        <span class="card-count">共 <span class="card-count-num" id="resultCount">0</span> 个</span>
+      </div>
+      <div class="card-header-actions">
+        <button class="icon-btn" onclick="previewResult()" title="预览" aria-label="预览抽取结果">👁</button>
+        <button class="icon-btn" onclick="copyResult()" title="复制结果" aria-label="复制结果">📋</button>
+      </div>
+    </div>
+    <div id="resultDisplay">
+      <div class="empty-state">
+        <span class="icon">✨</span>
+        <p>点击下方按钮<br>开始乱序抽取</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- History Card -->
+  <div class="card" id="historyCard" style="display:none">
+    <div class="card-header">
+      <div class="card-header-title">
+        <h3>📜 抽取记录</h3>
+      </div>
+      <div class="card-header-actions">
+        <button class="icon-btn" onclick="clearHistory()" title="清空记录" aria-label="清空记录">🗑️</button>
+      </div>
+    </div>
+    <div class="history-list" id="historyList"></div>
+  </div>
+</div>
+
+<!-- Fixed Control Dock -->
+<div class="control-dock" id="controlCard">
+  <div class="btn-group">
+    <button class="btn btn-accent" onclick="shuffleAndPick()" id="btnShufflePick">
+      <span class="icon">🎲</span> 乱序抽取
+    </button>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal-overlay modal-center" id="settingsModal" onclick="onSettingsModalClick(event)">
+  <div class="modal-sheet modal-sheet-sm">
+    <div class="modal-header">
+      <h3>⚙️ 设置</h3>
+      <button class="icon-btn" onclick="closeSettingsModal()" title="关闭" aria-label="关闭">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="settings-form">
+        <div class="settings-field">
+          <label class="settings-label">🎯 抽取数</label>
+          <div class="settings-control">
+            <div class="count-stepper">
+              <button type="button" class="stepper-btn" onclick="adjustPick(-1)" aria-label="减少">−</button>
+              <input type="text" class="count-input" id="pickCount" value="1" inputmode="numeric" pattern="[0-9]*" autocomplete="off" aria-label="抽取数量">
+              <button type="button" class="stepper-btn" onclick="adjustPick(1)" aria-label="增加">+</button>
+            </div>
+          </div>
+        </div>
+        <div class="settings-field">
+          <label class="settings-label">🎨 外观</label>
+          <div class="settings-control">
+            <button type="button" class="btn-theme" id="btnTheme" onclick="toggleTheme()">暗色</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Fullscreen Preview -->
+<div class="preview-overlay" id="previewModal">
+  <div class="preview-header">
+    <div class="preview-title">
+      <h3 id="previewTitle">预览</h3>
+      <span class="card-count">共 <span class="card-count-num" id="previewCount">0</span> 个</span>
+    </div>
+    <div class="preview-actions">
+      <button class="icon-btn" onclick="previewCopy()" title="复制" aria-label="复制">📋</button>
+      <button class="icon-btn" onclick="closePreview()" title="关闭" aria-label="关闭">✕</button>
+    </div>
+  </div>
+  <div class="preview-body">
+    <div id="previewDisplay" class="num-display"></div>
+  </div>
+</div>
+
+<!-- Copy Fallback Modal -->
+<div class="modal-overlay modal-center" id="copyModal" onclick="onCopyModalClick(event)">
+  <div class="modal-sheet modal-sheet-sm">
+    <div class="modal-header">
+      <h3>📋 复制内容</h3>
+      <button class="icon-btn" onclick="closeCopyModal()" title="关闭" aria-label="关闭">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="copy-fallback-tip">自动复制未成功，请长按下方内容全选后复制，或点击「再试一次」。</p>
+      <textarea id="copyFallbackText" class="copy-fallback-text"></textarea>
+      <div class="copy-fallback-actions">
+        <button type="button" class="btn btn-accent" onclick="retryCopyFromModal()">再试一次</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// Shuffle logic mirrors shuffle.js (used by unit tests). Keep both in sync.
+function parseInput(text){
+  if(!text.trim()) return [];
+  return text.trim().split(/[,，;；\s]+/).filter(Boolean);
+}
+function toNum(v){ return parseInt(v, 10); }
+function fisherYates(arr){
+  for(let i = arr.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+function countSortedConsecutive(nums){
+  const sorted = nums.map(toNum).filter(n => !isNaN(n)).sort((a, b) => a - b);
+  let c = 0;
+  for(let i = 1; i < sorted.length; i++){
+    if(sorted[i] - sorted[i - 1] === 1) c++;
+  }
+  return c;
+}
+function pickMinimalSortedConsecutive(pool, n){
+  if(n >= pool.length) return [...pool];
+  let best = pool.slice(0, n);
+  let bestScore = countSortedConsecutive(best);
+  const attempts = Math.min(150, Math.max(60, pool.length * 2));
+  for(let t = 0; t < attempts; t++){
+    const order = fisherYates([...Array(pool.length).keys()]);
+    const idx = order.slice(0, n).sort((a, b) => a - b);
+    const candidate = idx.map(i => pool[i]);
+    const score = countSortedConsecutive(candidate);
+    if(score < bestScore){
+      bestScore = score;
+      best = candidate;
+      if(score === 0) break;
+    }
+  }
+  return best;
+}
+
+// ===== State =====
+let items = [];
+let shuffled = [];
+let result = [];
+let history = [];
+try{
+  const raw = localStorage.getItem('rh_history');
+  history = raw ? JSON.parse(raw) : [];
+  if(!Array.isArray(history)) history = [];
+}catch(e){ history = []; }
+let dark = localStorage.getItem('rh_theme') !== 'light';
+let previewData = [];
+let previewCopyMsg = '';
+
+// ===== DOM =====
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+const inputText = $('#inputText');
+const itemCount = $('#itemCount');
+const resultCount = $('#resultCount');
+const pickCount = $('#pickCount');
+const resultDisplay = $('#resultDisplay');
+const resultCard = $('#resultCard');
+const btnPreviewItems = $('#btnPreviewItems');
+const btnViewPool = $('#btnViewPool');
+const previewModal = $('#previewModal');
+const previewTitle = $('#previewTitle');
+const previewCount = $('#previewCount');
+const previewDisplay = $('#previewDisplay');
+const settingsModal = $('#settingsModal');
+const copyModal = $('#copyModal');
+const copyFallbackText = $('#copyFallbackText');
+const historyList = $('#historyList');
+const historyCard = $('#historyCard');
+const toast = $('#toast');
+const btnClear = $('#btnClear');
+const btnTheme = $('#btnTheme');
+
+// ===== Init =====
+applyTheme();
+renderHistory();
+pickCount.value = localStorage.getItem('rh_pick_count') || '1';
+updatePreviewBtns();
+
+// ===== Pick count =====
+function savePickCount(){
+  const raw = pickCount.value.trim();
+  let n = parseInt(raw, 10);
+  if(raw === '' || isNaN(n) || n < 1) n = 1;
+  if(n > 999) n = 999;
+  pickCount.value = n;
+  localStorage.setItem('rh_pick_count', n);
+  return n;
+}
+
+function applyPickCount({ notify = false } = {}){
+  savePickCount();
+  return pickFromShuffled({ notify });
+}
+
+function pickFromShuffled({ notify = false } = {}){
+  if(shuffled.length === 0) return 0;
+  let n = parseInt(pickCount.value, 10);
+  if(isNaN(n) || n < 1) n = 1;
+  if(n > shuffled.length) n = shuffled.length;
+  pickCount.value = n;
+  result = pickMinimalSortedConsecutive(shuffled, n);
+  resultCount.textContent = n;
+  showResult(result);
+  resultCard.style.display = 'block';
+  if(notify){
+    triggerHaptic();
+    highlightResultCard();
+    requestAnimationFrame(() => resultCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' }));
+  }
+  return n;
+}
+
+function onInput(){
+  const raw = inputText.value;
+  items = parseInput(raw);
+  itemCount.textContent = items.length;
+  updateClearBtn();
+  updatePreviewBtns();
+  if(shuffled.length || result.length){
+    shuffled = [];
+    result = [];
+    hidePoolBtn();
+    resultCard.style.display = 'none';
+    resultCount.textContent = '0';
+  }
+}
+inputText.addEventListener('input', onInput);
+inputText.addEventListener('keydown', e => {
+  if(e.key === 'Enter' && !e.shiftKey){
+    e.preventDefault();
+    inputText.blur();
+    shuffleAndPick();
+  }
+});
+
+pickCount.addEventListener('input', () => {
+  pickCount.value = pickCount.value.replace(/\D/g, '');
+});
+
+function adjustPick(delta){
+  let n = parseInt(pickCount.value, 10);
+  if(pickCount.value.trim() === '' || isNaN(n)) n = 0;
+  n = Math.max(1, Math.min(999, n + delta));
+  pickCount.value = n;
+}
+
+function renderNumDisplay(el, list){
+  el.textContent = list.join(' ');
+}
+
+function showResult(selected){
+  resultDisplay.innerHTML = '';
+  const div = document.createElement('div');
+  div.className = 'num-display num-display--result';
+  renderNumDisplay(div, selected);
+  resultDisplay.appendChild(div);
+}
+
+function highlightResultCard(){
+  resultCard.classList.remove('result-area--breathing');
+  void resultCard.offsetWidth;
+  resultCard.classList.add('result-area--breathing');
+  resultCard.addEventListener('animationend', () => {
+    resultCard.classList.remove('result-area--breathing');
+  }, { once: true });
+}
+
+// ===== Main: Shuffle + Pick in one =====
+function shuffleAndPick(){
+  if(items.length === 0){
+    showToast('请先输入号码');
+    inputText.style.animation = 'none';
+    inputText.offsetHeight;
+    inputText.style.animation = 'shake .4s var(--ease)';
+    return;
+  }
+  shuffled = fisherYates([...items]);
+  showPool();
+  pickFromShuffled({ notify: true });
+  updateClearBtn();
+}
+
+function showPool(){
+  btnViewPool.style.display = 'block';
+}
+
+function hidePoolBtn(){
+  btnViewPool.style.display = 'none';
+  closePreview();
+}
+
+function openPreview(title, list, { copyMsg = '', variant = 'list' } = {}){
+  if(!list.length){
+    showToast('暂无数据可预览');
+    return;
+  }
+  previewData = list;
+  previewCopyMsg = copyMsg || `✓ 已复制 ${list.length} 个号码`;
+  previewTitle.textContent = title;
+  previewCount.textContent = list.length;
+  previewDisplay.className = 'num-display' + (variant !== 'list' ? ' num-display--' + variant : '');
+  renderNumDisplay(previewDisplay, list);
+  previewModal.classList.add('show');
+  previewModal.querySelector('.preview-body').scrollTop = 0;
+  updateBodyScroll();
+}
+
+function closePreview(){
+  previewModal.classList.remove('show');
+  updateBodyScroll();
+}
+
+function previewCopy(){
+  if(!previewData.length) return;
+  doCopy(previewData.join(' '), previewCopyMsg);
+}
+
+function previewItems(){
+  openPreview('📋 号码列表', items);
+}
+
+function previewResult(){
+  openPreview('🎉 抽取结果', result, { variant: 'result', copyMsg: `✓ 已复制 ${result.length} 个号码` });
+}
+
+function previewPool(){
+  openPreview('🃏 乱序池', shuffled, { variant: 'pool', copyMsg: `✓ 已复制 ${shuffled.length} 个号码` });
+}
+
+function updatePreviewBtns(){
+  if(btnPreviewItems) btnPreviewItems.style.display = items.length > 0 ? 'flex' : 'none';
+}
+
+function openSettingsModal(){
+  settingsModal.classList.add('show');
+  updateBodyScroll();
+}
+
+function closeSettingsModal(){
+  settingsModal.classList.remove('show');
+  updateBodyScroll();
+  if(shuffled.length){
+    applyPickCount();
+    requestAnimationFrame(() => resultCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' }));
+  } else {
+    savePickCount();
+  }
+}
+
+function onSettingsModalClick(e){
+  if(e.target === settingsModal) closeSettingsModal();
+}
+
+function updateBodyScroll(){
+  const locked = settingsModal.classList.contains('show')
+    || copyModal.classList.contains('show')
+    || previewModal.classList.contains('show');
+  document.body.style.overflow = locked ? 'hidden' : '';
+}
+
+// ===== Clipboard =====
+function isAndroid(){
+  return /android/i.test(navigator.userAgent);
+}
+
+function copyResult(){
+  if(result.length === 0){ showToast('没有结果可复制'); return; }
+  doCopy(result.join(' '), `✓ 已复制 ${result.length} 个号码`);
+}
+
+function doCopy(text, okMsg){
+  if(copyViaCopyEvent(text)){
+    showToast(okMsg);
+    return;
+  }
+  if(!isAndroid() && copyTextLegacy(text)){
+    showToast(okMsg);
+    return;
+  }
+  if(navigator.clipboard?.writeText && window.isSecureContext){
+    navigator.clipboard.writeText(text)
+      .then(() => showToast(okMsg))
+      .catch(() => showCopyFallback(text));
+    return;
+  }
+  showCopyFallback(text);
+}
+
+function copyViaCopyEvent(text){
+  let copied = false;
+  const handler = (e) => {
+    e.preventDefault();
+    e.clipboardData.setData('text/plain', text);
+    copied = true;
+  };
+  document.addEventListener('copy', handler);
+  try{ document.execCommand('copy'); }catch(e){}
+  document.removeEventListener('copy', handler);
+  if(copied) return true;
+
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.cssText = 'position:fixed;top:0;left:0;width:2px;height:2px;padding:0;border:none;outline:none;opacity:0;';
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  ta.setSelectionRange(0, text.length);
+  copied = false;
+  document.addEventListener('copy', handler);
+  try{ document.execCommand('copy'); }catch(e){}
+  document.removeEventListener('copy', handler);
+  document.body.removeChild(ta);
+  return copied;
+}
+
+function copyWithClipboardApi(text){
+  if(!navigator.clipboard?.writeText || !window.isSecureContext) return Promise.resolve(false);
+  return navigator.clipboard.writeText(text).then(() => true).catch(() => false);
+}
+
+function copyTextLegacy(text){
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.cssText = 'position:fixed;top:0;left:0;width:2px;height:2px;padding:0;border:none;outline:none;opacity:0;';
+  document.body.appendChild(ta);
+  if(/ipad|iphone|ipod/i.test(navigator.userAgent)){
+    ta.contentEditable = true;
+    ta.readOnly = false;
+    const range = document.createRange();
+    range.selectNodeContents(ta);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    ta.setSelectionRange(0, text.length);
+  } else {
+    ta.focus();
+    ta.select();
+    ta.setSelectionRange(0, text.length);
+  }
+  let ok = false;
+  try{ ok = document.execCommand('copy'); }catch(e){}
+  document.body.removeChild(ta);
+  return ok;
+}
+
+function showCopyFallback(text){
+  copyFallbackText.value = text;
+  copyModal.classList.add('show');
+  updateBodyScroll();
+  setTimeout(() => {
+    copyFallbackText.focus();
+    copyFallbackText.select();
+    copyFallbackText.setSelectionRange(0, text.length);
+  }, 150);
+  showToast('请手动复制内容');
+}
+
+function retryCopyFromModal(){
+  const text = copyFallbackText.value;
+  copyFallbackText.focus();
+  copyFallbackText.select();
+  copyFallbackText.setSelectionRange(0, text.length);
+  if(copyViaCopyEvent(text)){
+    closeCopyModal();
+    showToast('✓ 已复制');
+    return;
+  }
+  copyWithClipboardApi(text).then(success => {
+    if(success){
+      closeCopyModal();
+      showToast('✓ 已复制');
+    } else {
+      showToast('请长按文本手动复制');
+    }
+  });
+}
+
+function closeCopyModal(){
+  copyModal.classList.remove('show');
+  updateBodyScroll();
+}
+
+function updateClearBtn(){
+  btnClear.disabled = items.length === 0 && shuffled.length === 0 && result.length === 0;
+}
+
+function onCopyModalClick(e){
+  if(e.target === copyModal) closeCopyModal();
+}
+
+// ===== History =====
+function renderHistory(){
+  historyList.innerHTML = '';
+  if(history.length === 0){ historyCard.style.display = 'none'; return; }
+  historyCard.style.display = 'block';
+  history.forEach((h, i)=>{
+    const div = document.createElement('div');
+    div.className = 'history-item';
+    div.innerHTML = `
+      <span class="h-time">${h.time}</span>
+      <div class="h-nums">${h.nums.map(v => `<span>${escHtml(v)}</span>`).join('')}</div>
+      <button class="h-del" data-idx="${i}" aria-label="删除">✕</button>`;
+    div.querySelector('.h-del').onclick = (e) => {
+      e.stopPropagation();
+      history.splice(i, 1);
+      localStorage.setItem('rh_history', JSON.stringify(history));
+      renderHistory();
+      showToast('已删除');
+    };
+    div.onclick = (e) => {
+      if(e.target.closest('.h-del')) return;
+      inputText.value = h.nums.join(' ');
+      onInput();
+      showToast('已载入号码');
+    };
+    historyList.appendChild(div);
+  });
+}
+
+function clearHistory(){
+  if(!history.length) return;
+  history = [];
+  localStorage.setItem('rh_history', JSON.stringify(history));
+  renderHistory();
+  showToast('记录已清空');
+}
+
+// ===== Clear =====
+function clearAll(){
+  if(items.length === 0 && shuffled.length === 0 && result.length === 0) return;
+  inputText.value = '';
+  items = []; shuffled = []; result = [];
+  itemCount.textContent = '0';
+  resultCount.textContent = '0';
+  btnClear.disabled = true;
+  resultCard.style.display = 'none';
+  hidePoolBtn();
+  updatePreviewBtns();
+  showToast('已清空');
+}
+
+// ===== Theme =====
+function toggleTheme(){
+  dark = !dark;
+  localStorage.setItem('rh_theme', dark ? 'dark' : 'light');
+  applyTheme();
+}
+function applyTheme(){
+  const root = document.documentElement;
+  if(dark){
+    root.style.setProperty('--bg', '#0f0f1a');
+    root.style.setProperty('--surface', 'rgba(255,255,255,.06)');
+    root.style.setProperty('--surface-hover', 'rgba(255,255,255,.10)');
+    root.style.setProperty('--surface-active', 'rgba(255,255,255,.14)');
+    root.style.setProperty('--border', 'rgba(255,255,255,.08)');
+    root.style.setProperty('--text', '#e8e8f0');
+    root.style.setProperty('--text2', '#9898b8');
+    root.style.setProperty('--dock-bg', 'rgba(15,15,26,.92)');
+    root.style.setProperty('--header-bg', 'rgba(15,15,26,.92)');
+    if(btnTheme) btnTheme.textContent = '☀️ 切换浅色';
+  } else {
+    root.style.setProperty('--bg', '#f5f3ff');
+    root.style.setProperty('--surface', 'rgba(255,255,255,.8)');
+    root.style.setProperty('--surface-hover', 'rgba(255,255,255,.9)');
+    root.style.setProperty('--surface-active', 'rgba(255,255,255,1)');
+    root.style.setProperty('--border', 'rgba(0,0,0,.08)');
+    root.style.setProperty('--text', '#1a1a2e');
+    root.style.setProperty('--text2', '#6a6a8a');
+    root.style.setProperty('--dock-bg', 'rgba(245,243,255,.92)');
+    root.style.setProperty('--header-bg', 'rgba(245,243,255,.92)');
+    if(btnTheme) btnTheme.textContent = '🌙 切换暗色';
+  }
+  document.querySelector('meta[name=theme-color]').content = dark ? '#0f0f1a' : '#f5f3ff';
+}
+
+// ===== Toast =====
+let toastTimer;
+function showToast(msg){
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 1800);
+}
+
+// ===== Haptic =====
+function triggerHaptic(){
+  if(navigator.vibrate) navigator.vibrate(10);
+}
+
+// ===== Utils =====
+function escHtml(s){
+  const d = document.createElement('div');
+  d.textContent = String(s);
+  return d.innerHTML;
+}
+
+// ===== Keyboard shortcut =====
+document.addEventListener('keydown', e => {
+  if(e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
+  if(e.key === 'Enter'){ e.preventDefault(); shuffleAndPick(); }
+});
+</script>
+</body>
+</html>
