@@ -19,6 +19,7 @@ try{
 let dark = localStorage.getItem('rh_theme') !== 'light';
 let previewData = [];
 let previewCopyMsg = '';
+let pickCountOnOpen = '';
 
 // ===== DOM =====
 const $ = s => document.querySelector(s);
@@ -262,6 +263,7 @@ function updatePreviewBtns(){
 }
 
 function openSettingsModal(){
+  pickCountOnOpen = pickCount.value.trim();
   settingsModal.classList.add('show');
   updateBodyScroll();
 }
@@ -269,9 +271,14 @@ function openSettingsModal(){
 function closeSettingsModal(){
   settingsModal.classList.remove('show');
   updateBodyScroll();
+  const pickCountChanged = pickCount.value.trim() !== pickCountOnOpen;
   if(shuffled.length){
-    applyPickCount({ highlight: true });
-    requestAnimationFrame(() => resultCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' }));
+    if(pickCountChanged){
+      applyPickCount({ highlight: true });
+      requestAnimationFrame(() => resultCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' }));
+    } else {
+      savePickCount();
+    }
   } else {
     savePickCount();
   }
