@@ -485,6 +485,7 @@ body.has-page-nav .scroll-target{
       </div>
       <div class="card-header-actions">
         <button type="button" class="icon-btn" id="btnPreviewItems" onclick="previewItems()" title="预览" aria-label="预览号码池" style="display:none">👁</button>
+        <button type="button" class="icon-btn" id="btnCopyItems" onclick="copyItems()" title="复制" aria-label="复制号码池" style="display:none">📋</button>
       </div>
     </div>
     <textarea id="inputText" enterkeyhint="done" placeholder="粘贴号码，空格分隔&#10;000 002 003 004 010 012 013 ..."></textarea>
@@ -695,6 +696,7 @@ const remainingDisplay = $('#remainingDisplay');
 const remainingBlock = $('#remainingBlock');
 const resultCard = $('#resultCard');
 const btnPreviewItems = $('#btnPreviewItems');
+const btnCopyItems = $('#btnCopyItems');
 const btnViewPool = $('#btnViewPool');
 const previewModal = $('#previewModal');
 const previewTitle = $('#previewTitle');
@@ -732,12 +734,12 @@ function savePickCount(){
   return n;
 }
 
-function applyPickCount({ notify = false } = {}){
+function applyPickCount({ notify = false, highlight = false } = {}){
   savePickCount();
-  return pickFromShuffled({ notify });
+  return pickFromShuffled({ notify, highlight });
 }
 
-function pickFromShuffled({ notify = false } = {}){
+function pickFromShuffled({ notify = false, highlight = false } = {}){
   if(shuffled.length === 0) return 0;
   let n = parseInt(pickCount.value, 10);
   if(isNaN(n) || n < 1) n = 1;
@@ -755,6 +757,8 @@ function pickFromShuffled({ notify = false } = {}){
     triggerHaptic();
     highlightResultCard();
     requestAnimationFrame(() => resultCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' }));
+  } else if(highlight){
+    highlightResultCard();
   }
   return n;
 }
@@ -896,7 +900,7 @@ function previewCopy(){
 }
 
 function previewItems(){
-  openPreview('📋 号码池', items);
+  openPreview('📋 号码池', items, { copyMsg: `✓ 已复制 ${items.length} 个号码` });
 }
 
 function previewResult(){
@@ -912,7 +916,9 @@ function previewPool(){
 }
 
 function updatePreviewBtns(){
-  if(btnPreviewItems) btnPreviewItems.style.display = items.length > 0 ? 'flex' : 'none';
+  const show = items.length > 0 ? 'flex' : 'none';
+  if(btnPreviewItems) btnPreviewItems.style.display = show;
+  if(btnCopyItems) btnCopyItems.style.display = show;
 }
 
 function openSettingsModal(){
@@ -924,7 +930,7 @@ function closeSettingsModal(){
   settingsModal.classList.remove('show');
   updateBodyScroll();
   if(shuffled.length){
-    applyPickCount();
+    applyPickCount({ highlight: true });
     requestAnimationFrame(() => resultCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' }));
   } else {
     savePickCount();
@@ -950,6 +956,11 @@ function isAndroid(){
 function copyResult(){
   if(result.length === 0){ showToast('没有结果可复制'); return; }
   doCopy(result.join(' '), `✓ 已复制 ${result.length} 个号码`);
+}
+
+function copyItems(){
+  if(items.length === 0){ showToast('号码池为空'); return; }
+  doCopy(items.join(' '), `✓ 已复制 ${items.length} 个号码`);
 }
 
 function copyRemaining(){
